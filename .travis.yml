@@ -1,0 +1,15 @@
+language: cpp
+sudo: required
+services:
+    - docker
+dist: trusty
+os: linux
+install: skip
+script:
+    - docker build . -t capstone
+    - docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm --workdir /capstone/ros capstone  /opt/ros/kinetic/bin/catkin_make 
+notifications:
+    email:
+        on_success: change
+        on_failure: always
+
