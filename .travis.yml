@@ -5,6 +5,8 @@ services:
 dist: trusty
 os: linux
 install: skip
+cache: 
+  - ccache
 before_install:
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -14,7 +16,7 @@ before_install:
 script:
   - docker pull kairosautomotive/carla-brain:latest 
   - docker build . --cache-from kairosautomotive/carla-brain:latest -t capstone
-  - docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm --workdir /capstone/ros capstone  /opt/ros/kinetic/bin/catkin_make 
+  - docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ -v /home/travis/.ccache:/root/.ccache/ --rm --workdir /capstone/ros capstone  /opt/ros/kinetic/bin/catkin_make 
 notifications:
   email:
       on_success: change
