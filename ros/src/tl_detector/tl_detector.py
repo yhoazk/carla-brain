@@ -60,7 +60,6 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        print "init done"
         rospy.spin()
 
     def pose_cb(self, msg):
