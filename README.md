@@ -13,13 +13,13 @@ This repository is maintained by the following:
 - [Alexey Simonov](https://github.com/asimonov)
 - [Victor Guerra](https://github.com/vguerra)
 - [Ralf Beier](https://github.com/avrabe)
--
--
+- [Peter Luptak](https://github.com/dabavil)
+- [Gustavo Espindola](https://github.com/yhoazk)
 
 
 ## Workflow
 
-Please see [wiki](wiki) for complete description.
+Please see [wiki](https://github.com/Kairos-Automotive/carla-brain/wiki) for complete description.
 
 
 ## Installation
