@@ -1,7 +1,7 @@
 # Self Driving Car Engineer Nanodegree -- Capstone project
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/79ddbbe506054e43859247d9fd0b11b5)](https://www.codacy.com/app/Kairos-Automotive/carla-brain?utm_source=github.com&utm_medium=referral&utm_content=Kairos-Automotive/carla-brain&utm_campaign=badger) 
-[![Build Status](https://travis-ci.org/Kairos-AutomotAive/carla-brain.svg?branch=master)](https://travis-ci.org/Kairos-Automotive/carla-brain) 
+[![Build Status](https://travis-ci.org/Kairos-Automotive/carla-brain.svg?branch=master)](https://travis-ci.org/Kairos-Automotive/carla-brain) 
 [![Docker Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=kairosautomotive&repository=carla-brain)](https://hub.docker.com/r/kairosautomotive/carla-brain/) 
 
 This is the project repo for the final project of the Udacity
