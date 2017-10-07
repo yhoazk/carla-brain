@@ -16,6 +16,8 @@ STATE_COUNT_THRESHOLD = 3
 INDEX_DISTANCE_THRESHOLD = 150
 
 class TLDetector(object):
+    """
+    """
     def __init__(self):
         rospy.init_node('tl_detector')
 
@@ -26,19 +28,19 @@ class TLDetector(object):
         self.lights_position = np.array([])
         self.waypoints_np = np.array([])
         self.nearest_waypoints_to_lines = np.array([])
-        self.car_direction = 1 
-        self.car_last_wp = None 
+        self.car_direction = 1
+        self.car_last_wp = None
         self.in_range = False
         self.last_in_range = False
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         '''
-        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
-        helps you acquire an accurate ground truth data source for the traffic light
+        /vehicle/traffic_lights provides you with the location of the traffic light in 3D map
+        space and helps you acquire an accurate ground truth data source for the traffic light
         classifier by sending the current color state of all traffic lights in the
-        simulator. When testing on the vehicle, the color state will not be available. You'll need to
-        rely on the position of the light and the camera image to predict it.
+        simulator. When testing on the vehicle, the color state will not be available.
+        You'll need to rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
@@ -65,7 +67,7 @@ class TLDetector(object):
 
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
-        
+
         for point in waypoints.waypoints:
             x_coord = point.pose.pose.position.x
             y_coord = point.pose.pose.position.y
@@ -82,7 +84,7 @@ class TLDetector(object):
             for position in msg.lights:
                 x = position.pose.pose.position.x
                 y = position.pose.pose.position.y
-                self.lights_position = np.append(self.lights_position, complex(x,y))
+                self.lights_position = np.append(self.lights_position, complex(x, y))
 
             rospy.logwarn("tl_detector: Traffic signs location updated to "+ str(len(self.lights_position))+ " elements")
 
@@ -135,9 +137,9 @@ class TLDetector(object):
             get_distance = np.vectorize(lambda waypoint: np.linalg.norm(complex(pose[0], pose[1]) - waypoint))
         else:
             get_distance = np.vectorize(lambda waypoint: np.linalg.norm(complex(pose.position.x, pose.position.y) - waypoint))
-        
 
-        closest_point = get_distance(self.waypoints_np) 
+
+        closest_point = get_distance(self.waypoints_np)
         return np.argmin(closest_point) # Get the index of the current value
 
 
@@ -152,7 +154,7 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        if(not self.has_image):
+        if not self.has_image:
             self.prev_light_loc = None
             return False
 
@@ -178,7 +180,7 @@ class TLDetector(object):
         if(self.pose):
             if len(self.nearest_waypoints_to_lines) == 0:
                 for stop_line in stop_line_positions:
-                    self.nearest_waypoints_to_lines = np.append( self.nearest_waypoints_to_lines, \
+                    self.nearest_waypoints_to_lines = np.append(self.nearest_waypoints_to_lines, \
                                                     self.get_closest_waypoint(stop_line))
                 rospy.logwarn("tl_detector: Closest lines calculated")
 
@@ -190,7 +192,7 @@ class TLDetector(object):
                     self.car_direction = -1
 
             self.car_last_wp = car_position
-            
+
             # Now with the indexes of the nearest waypoints to a line, check if there is a point
             # which index is below the treshold. This works in both directions
             light_distances = [0 < (self.car_direction*(line_index - car_position)) < INDEX_DISTANCE_THRESHOLD  \
@@ -198,7 +200,7 @@ class TLDetector(object):
             self.last_in_range = self.in_range
             if any(light_distances):
                 light_wp = self.nearest_waypoints_to_lines[np.argmax(light_distances)]
-                self.in_range = True 
+                self.in_range = True
                 light = True
             else:
                 self.in_range = False
@@ -206,16 +208,13 @@ class TLDetector(object):
             if self.in_range and not self.last_in_range:
                 rospy.logwarn("tl_detector:Traffic light in range to detect. WP: " + str(light_wp) + " CarWP: " + str(car_position))
                 self.last_in_range = self.in_range
-            # TODO: Now check if the traffic light is in our direction or behind us.
-            # Need to check pose/speed so we dont get falsy red lights
         else:
             rospy.logerr("tl_detector: Pose is not set")
-        #TODO find the closest visible traffic light (if one exists)
 
         if light:
             # TODO: This is a stub, getting a fake state of the traffic light
-            state =  TrafficLight.RED   #self.get_light_state(light)
-            return light_wp,state 
+            state = TrafficLight.RED   #self.get_light_state(light)
+            return light_wp, state
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
