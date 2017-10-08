@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import math
 import rospy
+from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped 
 from styx_msgs.msg import Lane, Waypoint
-
+from styx_msgs.msg import TrafficLightArray
+import numpy as np
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -22,6 +25,8 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
 PUBLISHER_RATE = 1  # Publishin rate on channel /final_waypoints
+MAX_SPEED      = 15 # replace with the configurable one
+
 
 dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
@@ -31,9 +36,12 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/current_velocity',TwistStamped, self.velocity_cb)
+        # for testing: Gives the state of the traffic lights
+        rospy.Subscriber('/vehicle/traffic_lights',TrafficLightArray, self.tfl_state_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
         self.current_pose = None
@@ -42,7 +50,9 @@ class WaypointUpdater(object):
         self.len_base_waypoints = 0
         self.seq = 0
         self.current_waypoint_ahead = None
-        
+        self.closest_obstacle = None
+        self.current_velocity = None
+        self.current_tfl_state = None
         rate = rospy.Rate(PUBLISHER_RATE)
         while not rospy.is_shutdown():
             self.publish_waypoints_ahead()
@@ -59,9 +69,21 @@ class WaypointUpdater(object):
         self.base_waypoints = waypoints.waypoints
         self.len_base_waypoints = len(self.base_waypoints)
 
+    def tfl_state_cb(self, tfl_array):
+        # All the lights have the same state at the same time
+        self.current_tfl_state = tfl_array.lights[0].state
+
+
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        if msg.data != -1:
+            # assign the next waypoint
+            self.closest_obstacle = msg.data
+        else:
+            self.closest_obstacle = None
+
+        
+    def velocity_cb(self, msg):
+        self.current_velocity = msg.twist.linear.x
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -158,8 +180,35 @@ class WaypointUpdater(object):
         lane.header.seq = self.seq
         lane.waypoints = [self.base_waypoints[i] for i in waypoint_indices]
 
+        if self.closest_obstacle is None:
+            # There is no traffic light near us, go full speed
+            speeds = np.linspace(self.current_velocity,MAX_SPEED,1+(LOOKAHEAD_WPS//8))
+            full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
+            speeds = 25#np.concatenate((speeds, full_speed))
+        else:
+            # There is a traffic light in front
+            if self.current_tfl_state ==  0:
+                if self.current_velocity > 0.5:
+                    remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead) 
+                    rospy.logwarn("rm wp: " + str(remaining_wp))
+                    # Giving some extra space to reach speed == 0
+                    remaining_wp = remaining_wp - 5 if remaining_wp > 5 else remaining_wp
+                    # generate the ramp from current speed to full stop in the remaining space
+                    breaking = np.linspace(self.current_velocity, 0, remaining_wp)
+                    # Adjust the vector to LOOKAHEAD_WPS size
+                    speeds = 0#np.concatenate((breaking, np.zeros(LOOKAHEAD_WPS - len(breaking))))
+                else:
+                    speeds = 0#np.zeros(LOOKAHEAD_WPS)
+            else:
+                speeds = np.linspace(self.current_velocity,MAX_SPEED,1+(LOOKAHEAD_WPS//8))
+                full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
+                speeds = 25 #np.concatenate((speeds, full_speed))
+        
+        #rospy.logwarn(str(speeds[5]) + " "  + str(speeds[6]))
+        rospy.logwarn(speeds)
+
         for i in range(LOOKAHEAD_WPS):
-            self.set_waypoint_velocity(lane.waypoints, i, 15.0)
+            self.set_waypoint_velocity(lane.waypoints, i, speeds)
         
         self.final_waypoints_pub.publish(lane)
         self.seq += 1

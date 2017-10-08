@@ -13,7 +13,7 @@ import yaml
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
-INDEX_DISTANCE_THRESHOLD = 150
+INDEX_DISTANCE_THRESHOLD = 190 # This has to be less than the LOOKAHEAD_WPS
 
 
 class TLDetector(object):
