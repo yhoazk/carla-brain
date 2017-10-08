@@ -1,0 +1,5 @@
+<launch>
+    <param name="traffic_light_config" textfile="$(find tl_detector)/site_traffic_light_config.yaml" />
+    <node pkg="tl_detector" type="tl_detector.py" name="tl_detector" output="screen" cwd="node"/>
+    <test test-name="test_tl_detector" pkg="tl_detector" type="test_tl_detector.py" time-limit="10.0" />
+</launch>
