@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-
+import math
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
-import math
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -118,14 +117,14 @@ class WaypointUpdater(object):
             closest_distance = float('inf')
         else:
             possible_waypoint_indices = self._get_waypoint_indices(self.current_waypoint_ahead, LOOKAHEAD_WPS)
-            closest_ditance = dl(self.base_waypoints[self.current_waypoint_ahead].pose.position,
+            closest_distance = dl(self.base_waypoints[self.current_waypoint_ahead].pose.position,
                                 self.current_pose.position)
             
-        index = possible_waypoint_indices[0]
+        index = possible_waypoint_indices.pop(0)
         closer_point_found = True
 
-        while closer_point_found:
-            index += 1
+        while closer_point_found and len(possible_waypoint_indices) > 0:
+            index = possible_waypoint_indices.pop(0)
             distance = dl(self.base_waypoints[index].pose.pose.position,
                          self.current_pose.position)
         

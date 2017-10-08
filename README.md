@@ -85,6 +85,13 @@ roslaunch launch/styx.launch
 
 4. Run the simulator
 
+## Unit tests
+
+To run the unit tests call
+```bash
+source devel/setup.sh
+catkin_make run_tests
+```
 
 ## Test with ROS bags from real car
 
