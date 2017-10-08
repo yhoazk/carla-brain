@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="waypoint_updater" type="waypoint_updater.py" name="waypoint_updater" />
+    <test test-name="test_waypoint_updater" pkg="waypoint_updater" type="test_waypoint_updater.py" time-limit="10.0" />
+</launch>
