@@ -13,12 +13,12 @@ from styx_msgs.msg import Lane, Waypoint
 PKG = 'waypoint_updater'
 NAME = 'test_waypoint_updater'
 
-class TestTlDetector(unittest.TestCase):
+class TestWaypointUpdater(unittest.TestCase):
     """
-    A basic testcase for the tl_detector
+    A basic testcase for the waypoint_updater
     """
     def __init__(self, *args):
-        super(TestTlDetector, self).__init__(*args)
+        super(TestWaypointUpdater, self).__init__(*args)
         self.success = False
 
     def callback(self, data):
@@ -87,4 +87,4 @@ class TestTlDetector(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rostest.rosrun(PKG, NAME, TestTlDetector, sys.argv)
+    rostest.rosrun(PKG, NAME, TestWaypointUpdater, sys.argv)
