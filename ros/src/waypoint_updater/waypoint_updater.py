@@ -184,25 +184,27 @@ class WaypointUpdater(object):
             # There is no traffic light near us, go full speed
             speeds = np.linspace(self.current_velocity,MAX_SPEED,1+(LOOKAHEAD_WPS//8))
             full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
-            speeds = 25#np.concatenate((speeds, full_speed))
+            speeds = 35#np.concatenate((speeds, full_speed))
         else:
             # There is a traffic light in front
             if self.current_tfl_state ==  0:
+                remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead) 
                 if self.current_velocity > 0.5:
-                    remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead) 
                     rospy.logwarn("rm wp: " + str(remaining_wp))
+                    rospy.logwarn("rm sp: " + str(100*(remaining_wp-LOOKAHEAD_WPS)/LOOKAHEAD_WPS))
                     # Giving some extra space to reach speed == 0
                     remaining_wp = remaining_wp - 5 if remaining_wp > 5 else remaining_wp
                     # generate the ramp from current speed to full stop in the remaining space
                     breaking = np.linspace(self.current_velocity, 0, remaining_wp)
                     # Adjust the vector to LOOKAHEAD_WPS size
-                    speeds = 0#np.concatenate((breaking, np.zeros(LOOKAHEAD_WPS - len(breaking))))
+                    #speeds = -5#np.concatenate((breaking, np.zeros(LOOKAHEAD_WPS - len(breaking))))
+                    speeds = 100*(remaining_wp - LOOKAHEAD_WPS)/LOOKAHEAD_WPS #np.zeros(LOOKAHEAD_WPS)
                 else:
-                    speeds = 0#np.zeros(LOOKAHEAD_WPS)
+                    speeds = 100*(remaining_wp - LOOKAHEAD_WPS)/LOOKAHEAD_WPS #np.zeros(LOOKAHEAD_WPS)
             else:
                 speeds = np.linspace(self.current_velocity,MAX_SPEED,1+(LOOKAHEAD_WPS//8))
                 full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
-                speeds = 25 #np.concatenate((speeds, full_speed))
+                speeds = 35 #np.concatenate((speeds, full_speed))
         
         #rospy.logwarn(str(speeds[5]) + " "  + str(speeds[6]))
         rospy.logwarn(speeds)
