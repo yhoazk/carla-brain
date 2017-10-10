@@ -9,14 +9,32 @@ while getopts "h" arg; do
   esac
 done
 
+running_in_docker() {
+    awk -F/ '$2 == "docker"' /proc/self/cgroup | read
+}
+
 # pylint for all *.py files
 function _pylint {
 if [[ $1 == *py ]]
 then
-    echo "###### check: $1 (origin: $2)"
-    pylint --output-format=parseable --rcfile=._pylintrc $1
+    echo "###### check: $1"
+    pylint --output-format=parseable --rcfile=$SCRIPTPATH/.pylintrc "$1"
 fi
 }
+
+function _write {
+    file=$(readlink -e "$1")
+    echo "$file" >> $LOCKFILE
+}
+
+if running_in_docker
+then
+    pip install pylint > /dev/null
+fi
+
+SCRIPTPATH=$(dirname "$(readlink -f "$0")")
+LOCKFILE=$(mktemp)
+trap "{ rm -f $LOCKFILE; }" EXIT
 
 # Track for changed and untracked files
 git status -s | while read -r line;
@@ -28,21 +46,20 @@ do
         if [ -f $FOO ]
         then
             #echo add $FOO
-            _pylint $FOO "untracked file"
+            _write "$FOO"
         fi
         if [ -d $FOO ]
         then
             echo add recursive $FOO $(find $FOO -name "*.py")
             for file in $(find $FOO -name "*.py")
             do
-                _pylint $file "untracked directory $FOO"
+                _write "$file"
             done
         fi
     fi
     if [[ $a != ??* ]] && [[ $a != !!* ]] && [[ $a != D* ]]
     then
-        _pylint $FOO "git managed and not commited"
-        #echo normally add $FOO
+        _write "$FOO"
     fi
 done
 
@@ -51,7 +68,11 @@ if [ -n $1 ]
 then
     git diff --name-only $1 | while read -r line;
     do
-        _pylint $line "commited file"
+        _write "$SCRIPTPATH/$line" 
     done
 fi
 
+sort -u $LOCKFILE | while read -r line;
+do
+  _pylint $line
+done
