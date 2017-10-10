@@ -37,6 +37,7 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
         self.current_pose = None
+        self.current_frame_id = None
         self.base_waypoints = None
         self.len_base_waypoints = 0
         self.seq = 0
@@ -49,6 +50,7 @@ class WaypointUpdater(object):
 
     def pose_cb(self, msg):
         self.current_pose = msg.pose
+        self.current_frame_id = msg.header.frame_id
 
         if self.base_waypoints is None:
             return
@@ -113,14 +115,15 @@ class WaypointUpdater(object):
                     self.current_pose.position.y)
         
         if self.current_waypoint_ahead is None:
-            possible_waypoint_indices = self._get_waypoint_indices(0, LOOKAHEAD_WPS)
+            possible_waypoint_indices = self._get_waypoint_indices(0,
+                                                                   self.len_base_waypoints)
             closest_distance = float('inf')
         else:
             possible_waypoint_indices = self._get_waypoint_indices(self.current_waypoint_ahead, LOOKAHEAD_WPS)
-            closest_distance = dl(self.base_waypoints[self.current_waypoint_ahead].pose.position,
+            closest_distance = dl(self.base_waypoints[self.current_waypoint_ahead].pose.pose.position,
                                 self.current_pose.position)
             
-        index = possible_waypoint_indices.pop(0)
+        prev_index = possible_waypoint_indices.pop(0)
         closer_point_found = True
 
         while closer_point_found and len(possible_waypoint_indices) > 0:
@@ -132,8 +135,9 @@ class WaypointUpdater(object):
                 closer_point_found = False
             else:
                 closest_distance = distance
-                
-        return index
+                prev_index = index
+
+        return prev_index
         
     
     def publish_waypoints_ahead(self):
@@ -144,17 +148,18 @@ class WaypointUpdater(object):
             return
 
         start_index = self._closest_waypoint_index()
+        self.current_waypoint_ahead = start_index
+
         waypoint_indices = self._get_waypoint_indices(start_index, LOOKAHEAD_WPS)
         
         lane = Lane()
-        lane.header.frame_id = '/world'
-        lane.header.stamp = rospy.Time(0)
+        lane.header.frame_id = self.current_frame_id
+        lane.header.stamp = rospy.Time.now()
         lane.header.seq = self.seq
         lane.waypoints = [self.base_waypoints[i] for i in waypoint_indices]
 
-        rospy.logdebug("sending range waypoints %d - %d",
-                      start_index,
-                      waypoint_indices[-1])
+        for i in range(LOOKAHEAD_WPS):
+            self.set_waypoint_velocity(lane.waypoints, i, 15.0)
         
         self.final_waypoints_pub.publish(lane)
         self.seq += 1
