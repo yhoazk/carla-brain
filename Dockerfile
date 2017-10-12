@@ -23,15 +23,16 @@ ENV PATH /usr/lib/ccache/:$PATH
 
 # install python packages
 RUN pip install --no-cache-dir --upgrade "pip==9.0.1" && \
-    pip install --no-cache-dir "Flask==0.12.2" \
+    pip install --no-cache-dir "Flask==0.11.1" \
                                "attrdict==2.0.0" \
-                               "eventlet==0.21.0" \
-                               "python-socketio==1.8.1" \
-                               "numpy==1.13.3" \
-                               "Pillow==4.3.0" \
+                               "eventlet==0.19.0" \
+                               "python-socketio==1.6.1" \
+                               "numpy==1.13.1" \
+                               "Pillow==2.2.1" \
                                "scipy==0.19.1" \
-                               "keras==1.2.0" \
-                               "tensorflow==1.0.0" \
+                               "keras==2.0.8" \
+                               "tensorflow==1.3.0" \
+                               "h5py==2.6.0" \
                                "pylint==1.7.4" && \
     mkdir -p /capstone && mkdir -p /root/.ccache
 
