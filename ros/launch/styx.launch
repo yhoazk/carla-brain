@@ -1,5 +1,8 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="monkey_patch" default="false" />
+    <param name="do_monkey_patch" type="bool" value="$(arg monkey_patch)"/>
+
     <!-- Simulator Bridge -->
     <include file="$(find styx)/launch/server.launch" />
 
