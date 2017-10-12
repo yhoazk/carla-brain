@@ -14,13 +14,22 @@ import rospy
 from bridge import Bridge
 from conf import conf
 
-sio = socketio.Server()
-app = Flask(__name__)
-msgs = []
+
 
 dbw_enable = False
+MONKEY_PATCH = rospy.get_param('do_monkey_patch', False)
+
+rospy.logwarn("monkey_patch: %r", MONKEY_PATCH)
+if not MONKEY_PATCH:
+    sio = socketio.Server()
+else:
+    eventlet.monkey_patch()
+    sio = socketio.Server(async_mode='eventlet')
+
 rospy.init_node('styx_server')
 
+app = Flask(__name__)
+msgs = []
 
 @sio.on('connect')
 def connect(sid, environ):

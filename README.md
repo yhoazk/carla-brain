@@ -82,6 +82,12 @@ catkin_make
 source devel/setup.sh
 roslaunch launch/styx.launch
 ```
+If the connection of the simulator is not working as expected it 
+is possible to lauch with the workaround described in the [discussion](https://discussions.udacity.com/t/car-freezes-in-simulator-solved/363942/12?u=victor_guerra_986699).
+
+```bash
+roslaunch launch/styx.launch monkey_patch:=true
+```
 
 4. Run the simulator
 
