@@ -89,6 +89,14 @@ is possible to lauch with the workaround described in the [discussion](https://d
 roslaunch launch/styx.launch monkey_patch:=true
 ```
 
+To use the visualizer use below commands to configure the environment:
+```bash
+xhost +SI:localuser:root
+docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --rm -it kairosautomotive/carla-brain:latest
+source devel/setup.sh
+roslaunch launch/styx.launch &
+rosrun waypoint_updater show_waypoints.py
+```
 4. Run the simulator
 
 ## Unit tests
