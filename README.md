@@ -102,7 +102,7 @@ open -a Xquartz
 Set the preferences as described in [docker for mac and gui](https://fredrikaverpil.github.io/2016/07/31/docker-for-mac-and-gui-applications/).
 Restart Xquartz.
 
-####Setup the environment and start docker 
+#### Setup the environment and start docker 
 ```bash
 ip=$(ifconfig en0 | grep inet | awk ‘$1==“inet” {print $2}’)
 xhost + $ip
