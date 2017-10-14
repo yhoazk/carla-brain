@@ -88,7 +88,31 @@ is possible to lauch with the workaround described in the [discussion](https://d
 ```bash
 roslaunch launch/styx.launch monkey_patch:=true
 ```
+4. Run the simulator
 
+## Visualize the drive
+### Mac with X11 and docker
+#### Setup
+Install and start X11 (XQuartz).
+```bash
+brew cask install xquartz
+open -a Xquartz
+```
+
+Set the preferences as described in [docker for mac and gui](https://fredrikaverpil.github.io/2016/07/31/docker-for-mac-and-gui-applications/).
+Restart Xquartz.
+
+####Setup the environment and start docker 
+```bash
+ip=$(ifconfig en0 | grep inet | awk ‘$1==“inet” {print $2}’)
+xhost + $ip
+docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$ip:0 --rm -it kairosautomotive/carla-brain:latest
+source devel/setup.sh
+roslaunch launch/styx.launch &
+rosrun waypoint_updater show_waypoints.py
+```
+ 
+### Linux with X11 and docker
 To use the visualizer use below commands to configure the environment:
 ```bash
 xhost +SI:localuser:root
@@ -97,7 +121,6 @@ source devel/setup.sh
 roslaunch launch/styx.launch &
 rosrun waypoint_updater show_waypoints.py
 ```
-4. Run the simulator
 
 ## Unit tests
 
