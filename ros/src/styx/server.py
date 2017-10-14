@@ -31,8 +31,14 @@ msgs = []
 
 @sio.on('connect')
 def connect(sid, environ):
-    print("connect ", sid)
+    rospy.loginfo("connect: %r", sid)
 
+@sio.on('disconnect')
+def disconnect(sid):
+    global dbw_enable
+    rospy.loginfo("disconnect: %r", sid)
+    dbw_enable = False
+    bridge.publish_dbw_status(dbw_enable)
 
 def send(topic, data):
     s = 1
