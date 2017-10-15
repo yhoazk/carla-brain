@@ -24,4 +24,7 @@
 
     <!--Camera Info Publisher -->
     <include file="$(find camera_info_publisher)/launch/camera_info_publisher.launch"/>
+
+    <!--Set environment variable -->
+    <param name="current_env" value="live" />
 </launch>

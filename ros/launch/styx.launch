@@ -24,4 +24,9 @@
 
     <!--Traffic Light Locations and Camera Config -->
     <param name="traffic_light_config" textfile="$(find tl_detector)/sim_traffic_light_config.yaml" />
+
+    <!--Set environment variable -->
+    <param name="current_env" value="simulator" />
+
+
 </launch>
