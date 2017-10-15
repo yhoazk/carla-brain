@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+Traffic Light Detector node for Carla
+"""
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
@@ -16,7 +19,7 @@ from light_classification.tl_classifier import TLClassifier
 from tl_detector_segmentation import TLDetectorSegmentation
 
 
-STATE_COUNT_THRESHOLD = 2
+STATE_COUNT_THRESHOLD = 1
 INDEX_DISTANCE_THRESHOLD = 150
 
 
@@ -78,10 +81,12 @@ class TLDetector(object):
 
 
     def pose_cb(self, msg):
+        """Callback to receive pose"""
         self.pose = msg
 
 
     def waypoints_cb(self, waypoints):
+        """Callback to receive waypoints"""
         waypoints_np = np.array([])
 
         for point in waypoints.waypoints:
@@ -96,6 +101,7 @@ class TLDetector(object):
 
 
     def traffic_cb(self, msg):
+        """Callback to receive ground truth traffic light states in simulator"""
         self.lights = msg.lights
         if len(msg.lights) != len(self.lights_position):
             for position in msg.lights:
@@ -103,7 +109,7 @@ class TLDetector(object):
                 y = position.pose.pose.position.y
                 self.lights_position = np.append(self.lights_position, complex(x, y))
 
-            rospy.logwarn("tl_detector: Traffic lights locations updated to "+ str(len(self.lights_position))+ " elements")
+            rospy.logwarn("tl_detector: Traffic lights locations updated: count {}".format(len(self.lights_position)))
 
 
     def image_cb(self, msg):
@@ -184,15 +190,15 @@ class TLDetector(object):
                           TrafficLight.YELLOW: 0,
                           TrafficLight.GREEN: 0}
         for i, tl_image in enumerate(tl_images):
-            classification[self.light_classifier.get_classification(cv_image)] += 1
+            classification[self.light_classifier.get_classification(tl_image)] += 1
 
         # come to consensus what we are looking at
         result = TrafficLight.UNKNOWN
-        if classification[TrafficLight.RED]>0:
+        if classification[TrafficLight.RED] > 0:
             result = TrafficLight.RED
-        elif classification[TrafficLight.YELLOW]>0:
+        elif classification[TrafficLight.YELLOW] > 0:
             result = TrafficLight.YELLOW
-        elif classification[TrafficLight.GREEN]>0:
+        elif classification[TrafficLight.GREEN] > 0:
             result = TrafficLight.GREEN
         rospy.logwarn("tl_detector: classification result {}. consensus: {}".format(classification, result))
 

@@ -1,3 +1,4 @@
+""" Traffic Lights detector. Implementation: Semantic Segmentation (FCN8 with VGG16 encoder) using Tensorflow """
 from timeit import default_timer as timer
 
 import tensorflow as tf
@@ -5,8 +6,9 @@ import numpy as np
 import cv2
 from scipy.ndimage.measurements import label
 
-""" Traffic Lights detector. Implementation: Semantic Segmentation (FCN8 with VGG16 encoder) using Tensorflow """
-class TLDetectorSegmentation:
+
+class TLDetectorSegmentation(object):
+    """Traffic Lights Detector Class"""
     def __init__(self):
         """
         Creates tensorflow session and loads calculation graph
@@ -34,7 +36,7 @@ class TLDetectorSegmentation:
         Detects images of traffic lights in the input image
 
         :param img: arbitrary size image (hopefully aspect ratio close to 4:3) in OpenCV BGR uint8 format
-        :return: (list of images of detected traffic lights (in OpenCV format), time of tf run, time of image extraction)
+        :return: (list of images of detected traffic lights (OpenCV format), time of tf run, time of image ops)
         """
         h, w = img.shape[0], img.shape[1]
         h_sized, w_sized = self._image_shape[0], self._image_shape[1]
@@ -42,17 +44,17 @@ class TLDetectorSegmentation:
 
         # run TF prediction
         start_time = timer()
-        predicted_class = self._session.run( [self._detector_output],
-                                             {self._detector_keep_prob: 1.0,
-                                              self._detector_input: [resized_image]})
-        predicted_class = np.array(predicted_class[0][0,:,:,:], dtype=np.uint8)
+        predicted_class = self._session.run([self._detector_output],
+                                            {self._detector_keep_prob: 1.0,
+                                             self._detector_input: [resized_image]})
+        predicted_class = np.array(predicted_class[0][0, :, :, :], dtype=np.uint8)
         duration = timer() - start_time
         tf_time_ms = int(duration * 1000)
 
         # translate to traffic light images
         start_time = timer()
-        label = 1  # only take 'traffic light' class pixels. 0 is background
-        segmentation = np.expand_dims(predicted_class[:, :, label], axis=2)
+        class_label = 1  # only take 'traffic light' class pixels. 0 is background
+        segmentation = np.expand_dims(predicted_class[:, :, class_label], axis=2)
         # calculate bounding boxes
         bboxes = self._get_labeled_bboxes(segmentation)
         # extract bounding boxes on segmented image
