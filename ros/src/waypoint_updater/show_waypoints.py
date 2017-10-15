@@ -59,7 +59,7 @@ class Visualization(QtWidgets.QWidget):
         self.initUI()
         self.timer = QTimer()
         self.timer.timeout.connect(self.repaint)
-        self.timer.setInterval(1000)
+        self.timer.setInterval(300)
         self.timer.start()
 
     def initUI(self):
@@ -88,8 +88,8 @@ class Visualization(QtWidgets.QWidget):
         :param orig_y:
         :return:
         """
-        mov_x = -1*self.min_x if self.min_x > 0 else self.min_x
-        mov_y = -1*self.min_y if self.min_y > 0 else self.min_y
+        mov_x = -1*self.min_x
+        mov_y = -1*self.min_y 
         #rospy.logwarn("x and y %r %r   %r %r   %r %r", self.max_x, self.max_y, self.min_x, self.min_y, mov_x, mov_y)
 
         x = (orig_x + mov_x) * 800 / (self.max_x - self.min_x) + 150
@@ -144,7 +144,8 @@ class Visualization(QtWidgets.QWidget):
         :return:
         """
         twp = self.traffic_light
-        if twp >= 0 and self.lights:
+        if twp >= 0 and self.lights and twp <= len(self.base_waypoints):
+            #rospy.logwarn("%r %r", twp, len(self.base_waypoints))
             pen = QPen()
             pen.setWidth(20)
             pen.setColor(Qt.red)
@@ -267,6 +268,7 @@ class Visualization(QtWidgets.QWidget):
             min_y = min(waypoint.pose.pose.position.y, min_y)
         rospy.logwarn("x and y %r %r   %r %r", max_x, max_y, min_x, min_y)
         self.max_x, self.max_y, self.min_x, self.min_y = (max_x, max_y, min_x, min_y)
+
     def camera_callback(self, data):
         """
         Callback for /image_color
