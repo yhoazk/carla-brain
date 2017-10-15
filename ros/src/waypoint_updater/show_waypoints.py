@@ -17,6 +17,8 @@ from geometry_msgs.msg import PoseStamped
 from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport
 from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
 
 
 class Visualization(QtWidgets.QWidget):
@@ -29,6 +31,7 @@ class Visualization(QtWidgets.QWidget):
         super(Visualization, self).__init__()
         rospy.init_node('show_waypoints')
         self.lock = threading.Lock()
+        self.bridge = CvBridge()
 
         self.waypoints = None
         self.base_waypoints = None
@@ -38,6 +41,7 @@ class Visualization(QtWidgets.QWidget):
         self.traffic_light = - 1
         self.current_pose = None
         self.dbw_enabled = False
+        self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
 
         rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb)
@@ -49,7 +53,8 @@ class Visualization(QtWidgets.QWidget):
         rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
 
-        self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono}
+        self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
+                                 'bgr8': QtGui.QImage.Format_RGB888}
         self.image = None
         self.initUI()
         self.timer = QTimer()
@@ -61,7 +66,7 @@ class Visualization(QtWidgets.QWidget):
         """"
         Initialize the gui
         """
-        self.setGeometry(100, 100, 2000, 1000)
+        self.setGeometry(10, 10, 2200, 1000)
         self.setWindowTitle('Points')
         self.show()
 
@@ -76,6 +81,21 @@ class Visualization(QtWidgets.QWidget):
         self.drawPoints(painter)
         painter.end()
 
+    def calculate_position(self, orig_x, orig_y):
+        """
+        Readjust the position to be displayed within (150,150,950, 950)
+        :param orig_x:
+        :param orig_y:
+        :return:
+        """
+        mov_x = -1*self.min_x if self.min_x > 0 else self.min_x
+        mov_y = -1*self.min_y if self.min_y > 0 else self.min_y
+        #rospy.logwarn("x and y %r %r   %r %r   %r %r", self.max_x, self.max_y, self.min_x, self.min_y, mov_x, mov_y)
+
+        x = (orig_x + mov_x) * 800 / (self.max_x - self.min_x) + 150
+        y = (orig_y + mov_y)* 800 / (self.max_y - self.min_y) + 150
+        return (x, y)
+
     def draw_traffic_lights(self, painter):
         """
         If traffic lights have been provided, draw them.
@@ -88,8 +108,7 @@ class Visualization(QtWidgets.QWidget):
             pen.setColor(Qt.blue)
             painter.setPen(pen)
             for position in self.lights:
-                x = position.pose.pose.position.x / 1000 * 400
-                y = position.pose.pose.position.y / 1000 * 400 - 400
+                x, y = self.calculate_position(position.pose.pose.position.x, position.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
     def draw_dbw_enabled(self, painter):
@@ -102,7 +121,7 @@ class Visualization(QtWidgets.QWidget):
         pen.setColor(Qt.black)
         painter.setPen(pen)
         text = "Automatic" if self.dbw_enabled else "Manual"
-        painter.drawText(QPointF(10,20), text)
+        painter.drawText(QPointF(10, 20), text)
 
     def draw_current_pose(self, painter):
         """
@@ -115,9 +134,7 @@ class Visualization(QtWidgets.QWidget):
             pen.setWidth(15)
             pen.setColor(Qt.darkMagenta)
             painter.setPen(pen)
-            x = self.current_pose.pose.position.x / 1000 * 400
-            y = self.current_pose.pose.position.y / 1000 * 400 - 400
-
+            x, y = self.calculate_position(self.current_pose.pose.position.x, self.current_pose.pose.position.y)
             painter.drawPoint(x, y)
 
     def draw_next_traffic_light(self, painter):
@@ -132,8 +149,8 @@ class Visualization(QtWidgets.QWidget):
             pen.setWidth(20)
             pen.setColor(Qt.red)
             painter.setPen(pen)
-            x = self.base_waypoints[twp].pose.pose.position.x / 1000 * 400
-            y = self.base_waypoints[twp].pose.pose.position.y / 1000 * 400 - 400
+            x, y = self.calculate_position(self.base_waypoints[twp].pose.pose.position.x,
+                                           self.base_waypoints[twp].pose.pose.position.y)
             painter.drawPoint(x, y)
 
     def drawPoints(self, painter):
@@ -148,17 +165,18 @@ class Visualization(QtWidgets.QWidget):
         painter.setPen(pen)
         if self.base_waypoints:
             for waypoint in self.base_waypoints:
-                x = waypoint.pose.pose.position.x / 1000 * 400
-                y = waypoint.pose.pose.position.y / 1000 * 400 - 400
+                x, y = self.calculate_position(waypoint.pose.pose.position.x,
+                                               waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
+
         pen = QPen()
         pen.setWidth(6)
         pen.setColor(Qt.red)
         painter.setPen(pen)
         if self.waypoints:
             for waypoint in self.waypoints:
-                x = waypoint.pose.pose.position.x / 1000 * 400
-                y = waypoint.pose.pose.position.y / 1000 * 400 - 400
+                x, y = self.calculate_position(waypoint.pose.pose.position.x,
+                                               waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
         cx = 500
@@ -182,6 +200,9 @@ class Visualization(QtWidgets.QWidget):
         self.draw_traffic_lights(painter)
 
     def draw_steering(self, painter, cx, cy, r, width, steering, color):
+        """
+        Draw the steering angle
+        """
         pen = QPen()
         pen.setWidth(width)
         pen.setColor(color)
@@ -191,6 +212,9 @@ class Visualization(QtWidgets.QWidget):
         painter.drawLine(QPointF(cx, cy), QPointF(x, y))
 
     def draw_steering_report(self, painter, cx, cy, r, color):
+        """
+        Draw the reported steering angle
+        """
         if self.steering_report:
             pen = QPen()
             pen.setColor(Qt.black)
@@ -232,6 +256,17 @@ class Visualization(QtWidgets.QWidget):
         """
         self.base_waypoints = msg.waypoints
 
+        max_x = -sys.maxint
+        max_y = -sys.maxint
+        min_x = sys.maxint
+        min_y = sys.maxint
+        for waypoint in self.base_waypoints:
+            max_x = max(waypoint.pose.pose.position.x, max_x)
+            max_y = max(waypoint.pose.pose.position.y, max_y)
+            min_x = min(waypoint.pose.pose.position.x, min_x)
+            min_y = min(waypoint.pose.pose.position.y, min_y)
+        rospy.logwarn("x and y %r %r   %r %r", max_x, max_y, min_x, min_y)
+        self.max_x, self.max_y, self.min_x, self.min_y = (max_x, max_y, min_x, min_y)
     def camera_callback(self, data):
         """
         Callback for /image_color
@@ -239,8 +274,12 @@ class Visualization(QtWidgets.QWidget):
         :return:
         """
         _format = self.img_format_table[data.encoding]
-
-        image = QtGui.QImage(data.data, data.width, data.height, _format)
+        if data.encoding == "bgr8":
+            cv_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="passthrough")
+            image_data = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        else:
+            image_data = data.data
+        image = QtGui.QImage(image_data, data.width, data.height, _format)
         self.image = image
 
     def traffic_cb(self, msg):
