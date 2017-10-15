@@ -20,14 +20,17 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number via parameter
 PUBLISHER_RATE = 1  # Publishin rate on channel /final_waypoints
 
 dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
 class WaypointUpdater(object):
     def __init__(self):
+        global LOOKAHEAD_WPS
         rospy.init_node('waypoint_updater')
+
+        LOOKAHEAD_WPS = rospy.get_param('lookahead_wps', LOOKAHEAD_WPS)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -158,7 +161,8 @@ class WaypointUpdater(object):
         lane.header.seq = self.seq
         lane.waypoints = [self.base_waypoints[i] for i in waypoint_indices]
 
-        for i in range(LOOKAHEAD_WPS):
+
+        for i in range(min(self.len_base_waypoints, LOOKAHEAD_WPS)):
             self.set_waypoint_velocity(lane.waypoints, i, 15.0)
         
         self.final_waypoints_pub.publish(lane)

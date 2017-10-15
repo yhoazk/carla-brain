@@ -11,6 +11,7 @@
 
     <!--Waypoint Updater Node -->
     <include file="$(find waypoint_updater)/launch/waypoint_updater.launch"/>
+    <param name="lookahead_wps" type="int" value="20"/>
 
     <!--Traffic Light Locations and Camera Config -->
     <param name="traffic_light_config" textfile="$(find tl_detector)/site_traffic_light_config.yaml" />
