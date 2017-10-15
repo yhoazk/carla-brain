@@ -147,6 +147,15 @@ unzip traffic_light_bag_files.zip
 rosbag play -l traffic_light_bag_files/loop_with_traffic_light.bag
 ```
 
+To disable specific topics from the bag they can either be 
+[filtered](https://answers.ros.org/question/228676/exclude-some-topics-from-rosbag-play/) 
+or the topics can be renamed during playback:
+
+```bash
+rosbag play -l udacity_succesful_light_detection.bag /traffic_waypoint:=/traffic_waypoint_null /final_waypoints:=/final_waypoints_null /base_waypoints:=/base_waypoints_null /vehicle/steering_cmd:=/vehicle/steering_cmd_null 
+
+```
+
 4. Launch your project in site mode
 ```bash
 cd carla-brain/ros

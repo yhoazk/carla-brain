@@ -68,12 +68,15 @@ class TLDetector(object):
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+        waypoints_np = np.array([])
 
         for point in waypoints.waypoints:
             x_coord = point.pose.pose.position.x
             y_coord = point.pose.pose.position.y
-            self.waypoints_np = np.append(self.waypoints_np, complex(x_coord, y_coord))
+            waypoints_np = np.append(waypoints_np, complex(x_coord, y_coord))
+
+        self.waypoints = waypoints
+        self.waypoints_np = waypoints_np
 
         rospy.logwarn("Waypoints updated to "+ str(len(self.waypoints_np))+ " elements")
 
@@ -97,6 +100,7 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
+
         light_wp, state = self.process_traffic_lights()
 
         '''
@@ -115,6 +119,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+
         self.state_count += 1
 
     def get_closest_waypoint(self, pose):
