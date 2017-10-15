@@ -16,6 +16,7 @@
     <include file="$(find waypoint_follower)/launch/pure_pursuit.launch"/>
 
     <!--Waypoint Updater Node -->
+    <param name="lookahead_wps" type="int" value="200"/>
     <include file="$(find waypoint_updater)/launch/waypoint_updater.launch"/>
 
     <!--Traffic Light Detector Node -->
