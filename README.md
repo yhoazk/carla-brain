@@ -104,7 +104,7 @@ Restart Xquartz.
 
 #### Setup the environment and start docker 
 ```bash
-ip=$(ifconfig en0 | grep inet | awk ‘$1==“inet” {print $2}’)
+ip=$(ifconfig en0 | grep inet | awk '$1=="inet" {print $2}')
 xhost + $ip
 docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=$ip:0 --rm -it kairosautomotive/carla-brain:latest
 source devel/setup.sh
