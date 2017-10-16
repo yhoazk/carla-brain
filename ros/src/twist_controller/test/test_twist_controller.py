@@ -11,8 +11,8 @@ import rostest
 from std_msgs.msg import Bool
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd
 
-PKG = 'waypoint_updater'
-NAME = 'test_waypoint_updater'
+PKG = 'twist_controller'
+NAME = 'test_twist_controller'
 
 
 class TestTwistController(unittest.TestCase):
