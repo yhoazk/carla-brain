@@ -30,7 +30,7 @@ class Controller(object):
 
         self.prev_time = rospy.get_time()
 
-        self.steer_pid = PID(kp=0.2, ki=0.00009, kd=1.7,
+        self.steer_pid = PID(kp=0.2, ki=0.0000, kd=1.7,
                              mn=-max_steer_angle, mx=max_steer_angle)
 
         self.max_steer_angle = max_steer_angle
@@ -40,7 +40,7 @@ class Controller(object):
                                             max_lat_accel=max_lat_accel,
                                             max_steer_angle=max_steer_angle)
 
-        self.accel_pid = PID(kp=1.5, ki=0.0001, kd=0.1, mn=decel_limit, mx=accel_limit)
+        self.accel_pid = PID(kp=1.5, ki=0.000, kd=0.1, mn=decel_limit, mx=accel_limit)
 
     def control(self,
                 dbw_enabled,
