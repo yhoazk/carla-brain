@@ -27,7 +27,7 @@ rospy.init_node('styx_server')
 rospy.logwarn("monkey_patch: %r", MONKEY_PATCH)
 
 app = Flask(__name__)
-msgs = []
+msgs = {}
 
 @sio.on('connect')
 def connect(sid, environ):
@@ -42,7 +42,7 @@ def disconnect(sid):
 
 def send(topic, data):
     s = 1
-    msgs.append((topic, data))
+    msgs[topic] = data
     # sio.emit(topic, data=json.dumps(data), skip_sid=True)
 
 bridge = Bridge(conf, send)
@@ -56,7 +56,7 @@ def telemetry(sid, data):
         bridge.publish_dbw_status(dbw_enable)
     bridge.publish_odometry(data)
     for i in range(len(msgs)):
-        topic, data = msgs.pop(0)
+        topic, data = msgs.popitem()
         sio.emit(topic, data=data, skip_sid=True)
 
 
