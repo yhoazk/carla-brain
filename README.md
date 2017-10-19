@@ -54,7 +54,7 @@ The prefered way for using containers is to use the prebuild.
 
 Run the docker file
 ```bash
-docker run -p 127.0.0.1:4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it kairosautomotive/carla-brain
+docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it kairosautomotive/carla-brain
 ```
 
 ### Simulator
