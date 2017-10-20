@@ -27,9 +27,5 @@ class PID(object):
         val = max(self.min, min(y, self.max))
 
         self.last_error = error
-        if val > self.max:
-            val = self.max
-        elif val < self.min:
-            val = self.min
 
         return val
