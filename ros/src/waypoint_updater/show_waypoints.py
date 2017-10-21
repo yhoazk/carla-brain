@@ -19,6 +19,7 @@ from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+import numpy as np
 
 
 class Visualization(QtWidgets.QWidget):
@@ -55,7 +56,8 @@ class Visualization(QtWidgets.QWidget):
 
         self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
                                  'bgr8': QtGui.QImage.Format_RGB888}
-        self.image = None
+        self.image = QtGui.QImage(np.zeros([300,400,3]), 400, 300, self.img_format_table['bgr8'])
+
         self.initUI()
         self.timer = QTimer()
         self.timer.timeout.connect(self.repaint)
@@ -66,7 +68,7 @@ class Visualization(QtWidgets.QWidget):
         """"
         Initialize the gui
         """
-        self.setGeometry(10, 10, 2200, 1000)
+        self.setGeometry(10, 10, 1000, 1000)
         self.setWindowTitle('Carla Diagnostics')
         self.show()
 
@@ -180,8 +182,8 @@ class Visualization(QtWidgets.QWidget):
                                                waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
-        cx = 500
-        cy = 500
+        cx = 130
+        cy = 130
         r = 100.0
         pen = QPen()
         pen.setWidth(3)
@@ -193,7 +195,7 @@ class Visualization(QtWidgets.QWidget):
         self.draw_steering_report(painter, cx, cy, r, Qt.blue)
 
         if self.image:
-            painter.drawImage(QRectF(1000, 200, self.image.size().width(), self.image.size().height()), self.image)
+            painter.drawImage(QRectF(350, 250, self.image.size().width(), self.image.size().height()), self.image)
 
         self.draw_next_traffic_light(painter)
         self.draw_dbw_enabled(painter)
@@ -221,7 +223,7 @@ class Visualization(QtWidgets.QWidget):
             pen.setColor(Qt.black)
             painter.setPen(pen)
             text = "%4d km/h" % (self.steering_report.speed*3.6)
-            painter.drawText(QPointF(cx, cy-r-40), text)
+            painter.drawText(QPointF(cx-20, cy+r+20), text)
 
             self.draw_steering(painter, cx, cy, r, 5, self.steering_report.steering_wheel_angle, color)
 
