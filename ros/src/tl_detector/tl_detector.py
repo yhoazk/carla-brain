@@ -2,6 +2,8 @@
 """
 Traffic Light Detector node for Carla
 """
+from timeit import default_timer as timer
+
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, Pose
@@ -64,7 +66,8 @@ class TLDetector(object):
         You'll need to rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        #sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
+        self.pub_debug = rospy.Publisher("/image_debug", Image, queue_size=1)
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -179,18 +182,41 @@ class TLDetector(object):
         if not self.has_image:
             return TrafficLight.UNKNOWN
 
-        # detect images of what looks like traffic lights
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        tl_images, tf_ms, img_ms = self.detector.detect(cv_image)
-        rospy.logwarn("tl_detector: detected {} traffic lights in camera_image in {} ms".format(len(tl_images), tf_ms))
+        start_time = timer()
 
-        # classify images of traffic lights
+        # detect bounding boxes of what looks like traffic lights
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+
+        bboxes, tf_ms = self.detector.detect(cv_image)
+
+        # extract TL images and classify. create debug segmented image
         classification = {TrafficLight.UNKNOWN: 0,
                           TrafficLight.RED: 0,
                           TrafficLight.YELLOW: 0,
                           TrafficLight.GREEN: 0}
-        for i, tl_image in enumerate(tl_images):
-            classification[self.light_classifier.get_classification(tl_image)] += 1
+        tl_img_debug = np.copy(cv_image)
+        rect_img = np.zeros_like(tl_img_debug)
+        for i, box in enumerate(bboxes):
+            x1 = box[0][0]
+            y1 = box[0][1]
+            x2 = box[1][0]
+            y2 = box[1][1]
+            tl_image = cv_image[y1:y2, x1:x2]
+            classifier_size = (128,128)
+            resized = cv2.resize(tl_image, classifier_size, cv2.INTER_LINEAR)
+            # Classification
+            tl_class = self.light_classifier.get_classification(resized)
+            classification[tl_class] += 1
+            # debug output
+            color = [255,255,255]
+            if tl_class == TrafficLight.RED:
+                color = [0, 0, 255]
+            elif tl_class == TrafficLight.YELLOW:
+                color = [0, 255, 255]
+            elif tl_class == TrafficLight.GREEN:
+                color = [0, 255, 0]
+            cv2.rectangle(rect_img, box[0], box[1], color, thickness=-1)
+        cv2.addWeighted(tl_img_debug, 1.0, rect_img, 0.5, 0, tl_img_debug)
 
         # come to consensus what we are looking at
         result = TrafficLight.UNKNOWN
@@ -200,7 +226,15 @@ class TLDetector(object):
             result = TrafficLight.YELLOW
         elif classification[TrafficLight.GREEN] > 0:
             result = TrafficLight.GREEN
-        rospy.logwarn("tl_detector: classification result {}. consensus: {}".format(classification, result))
+
+        # publish debug message
+        resized = cv2.resize(tl_img_debug, (400,300,), interpolation=cv2.INTER_LINEAR)
+        image_message = self.bridge.cv2_to_imgmsg(resized, encoding="bgr8")
+        self.pub_debug.publish(image_message)
+        time_ms = int((timer() - start_time) * 1000)
+
+        rospy.logwarn("tl_detector: detected {} TLs in img, {}/{} tf/tot ms, classes={}. result={}".format(
+            len(bboxes), tf_ms, time_ms, classification, result))
 
         return result
 
