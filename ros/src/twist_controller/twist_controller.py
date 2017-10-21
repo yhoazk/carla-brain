@@ -4,11 +4,13 @@ from lowpass import LowPassFilter
 from pid import PID
 from yaw_controller import YawController
 from math import fabs
+from twiddle import PIDWithTwiddle
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
-PRED_STEERING_FACTOR = 1.0
+PRED_STEERING_FACTOR = 0.2
+CORR_STEERING_FACTOR = 0.3
 
 
 class Controller(object):
@@ -30,8 +32,12 @@ class Controller(object):
 
         self.prev_time = rospy.get_time()
 
-        self.steer_pid = PID(kp=0.2, ki=0.0000, kd=1.7,
-                             mn=-max_steer_angle, mx=max_steer_angle)
+        # twiddle algorithm is disabled so iterations and tolerance are here to show
+        # what values to use when you want to activate twiddle.
+        # kp, ki and kd are values found from previous twiddle runs.
+        self.steer_pid = PIDWithTwiddle(kp=0.607900, ki=0.000172, kd=1.640951,
+                             mn=-max_steer_angle, mx=max_steer_angle,
+                             optimize_params=False, iterations=10, tolerance=0.05)
 
         self.max_steer_angle = max_steer_angle
         self.yaw_controller = YawController(wheel_base=wheel_base,
@@ -64,7 +70,7 @@ class Controller(object):
 
             corrective_steer = self.steer_pid.step(error=cte, sample_time=sample_time)
 
-            steer = 0.3 * corrective_steer + 0.2 * predictive_steer
+            steer = CORR_STEERING_FACTOR * corrective_steer + PRED_STEERING_FACTOR * predictive_steer
 
             rospy.logdebug('steer = %f, cte = %f, corrective_steer = %f, predictive_steer = %f',
                           steer, cte, corrective_steer, predictive_steer)
