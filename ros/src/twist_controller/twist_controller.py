@@ -9,7 +9,8 @@ from twiddle import PIDWithTwiddle
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
-PRED_STEERING_FACTOR = 1.0
+PRED_STEERING_FACTOR = 0.2
+CORR_STEERING_FACTOR = 0.3
 
 
 class Controller(object):
@@ -69,7 +70,7 @@ class Controller(object):
 
             corrective_steer = self.steer_pid.step(error=cte, sample_time=sample_time)
 
-            steer = 0.3 * corrective_steer + 0.2 * predictive_steer
+            steer = CORR_STEERING_FACTOR * corrective_steer + PRED_STEERING_FACTOR * predictive_steer
 
             rospy.logdebug('steer = %f, cte = %f, corrective_steer = %f, predictive_steer = %f',
                           steer, cte, corrective_steer, predictive_steer)
