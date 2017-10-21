@@ -4,6 +4,7 @@ from lowpass import LowPassFilter
 from pid import PID
 from yaw_controller import YawController
 from math import fabs
+from twiddle import PIDWithTwiddle
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -30,8 +31,12 @@ class Controller(object):
 
         self.prev_time = rospy.get_time()
 
-        self.steer_pid = PID(kp=0.2, ki=0.0000, kd=1.7,
-                             mn=-max_steer_angle, mx=max_steer_angle)
+        # twiddle algorithm is disabled so iterations and tolerance are here to show
+        # what values to use when you want to activate twiddle.
+        # kp, ki and kd are values found from previous twiddle runs.
+        self.steer_pid = PIDWithTwiddle(kp=0.607900, ki=0.000172, kd=1.640951,
+                             mn=-max_steer_angle, mx=max_steer_angle,
+                             optimize_params=False, iterations=10, tolerance=0.05)
 
         self.max_steer_angle = max_steer_angle
         self.yaw_controller = YawController(wheel_base=wheel_base,
