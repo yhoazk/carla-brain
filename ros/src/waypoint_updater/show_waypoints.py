@@ -43,15 +43,15 @@ class Visualization(QtWidgets.QWidget):
         self.dbw_enabled = False
         self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
 
-        rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb)
-        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cb)
-        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_report_cb)
-        rospy.Subscriber('/image_color', Image, self.camera_callback)
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb)
-        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb)
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb, queue_size=1)
+        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_report_cb, queue_size=1)
+        rospy.Subscriber('/image_debug', Image, self.camera_callback, queue_size=1)
+        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb, queue_size=1)
+        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
 
         self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
                                  'bgr8': QtGui.QImage.Format_RGB888}
@@ -67,7 +67,7 @@ class Visualization(QtWidgets.QWidget):
         Initialize the gui
         """
         self.setGeometry(10, 10, 2200, 1000)
-        self.setWindowTitle('Points')
+        self.setWindowTitle('Carla Diagnostics')
         self.show()
 
     def paintEvent(self, e):
