@@ -250,7 +250,7 @@ class Visualization(QtWidgets.QWidget):
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Throttle: %5d %s " % (self.throttle_cmd, str)
+            text = "Throttle: %2.2f %s " % (self.throttle_cmd, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+20), text)
 
         if self.brake_cmd_type:
@@ -264,7 +264,7 @@ class Visualization(QtWidgets.QWidget):
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Brake: %5d %s " % (self.brake_cmd, str)
+            text = "Brake: %5.2f %s " % (self.brake_cmd, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+40), text)
 
 
