@@ -52,13 +52,12 @@ class TLDetectorSegmentation(object):
         tf_time_ms = int(duration * 1000)
 
         # translate to traffic light images
-        start_time = timer()
         class_label = 1  # only take 'traffic light' class pixels. 0 is background
         segmentation = np.expand_dims(predicted_class[:, :, class_label], axis=2)
         # calculate bounding boxes
         bboxes = self._get_labeled_bboxes(segmentation)
         # extract bounding boxes on segmented image
-        tl_imgs = []
+        out_bboxes = []
         for i, box in enumerate(bboxes):
             bx1 = box[0][0]
             by1 = box[0][1]
@@ -69,12 +68,9 @@ class TLDetectorSegmentation(object):
             x2 = int(bx2 * w / w_sized)
             y1 = int(by1 * h / h_sized)
             y2 = int(by2 * h / h_sized)
-            tl_image = img[y1:y2, x1:x2]
-            tl_imgs.append(tl_image)
-        duration = timer() - start_time
-        img_time_ms = int(duration * 1000)
+            out_bboxes.append(((x1,y1,), (x2,y2,)))
 
-        return tl_imgs, tf_time_ms, img_time_ms
+        return out_bboxes, tf_time_ms
 
 
     def _get_labeled_bboxes(self, heatmap):

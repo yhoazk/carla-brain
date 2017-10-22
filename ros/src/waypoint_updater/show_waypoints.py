@@ -19,6 +19,7 @@ from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
+import numpy as np
 
 
 class Visualization(QtWidgets.QWidget):
@@ -43,19 +44,20 @@ class Visualization(QtWidgets.QWidget):
         self.dbw_enabled = False
         self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
 
-        rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb)
-        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cb)
-        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_report_cb)
-        rospy.Subscriber('/image_color', Image, self.camera_callback)
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb)
-        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb)
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb, queue_size=1)
+        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_report_cb, queue_size=1)
+        rospy.Subscriber('/image_debug', Image, self.camera_callback, queue_size=1)
+        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb, queue_size=1)
+        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
 
         self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
                                  'bgr8': QtGui.QImage.Format_RGB888}
-        self.image = None
+        self.image = QtGui.QImage(np.zeros([300,400,3]), 400, 300, self.img_format_table['bgr8'])
+
         self.initUI()
         self.timer = QTimer()
         self.timer.timeout.connect(self.repaint)
@@ -66,8 +68,8 @@ class Visualization(QtWidgets.QWidget):
         """"
         Initialize the gui
         """
-        self.setGeometry(10, 10, 2200, 1000)
-        self.setWindowTitle('Points')
+        self.setGeometry(10, 10, 1000, 1000)
+        self.setWindowTitle('Carla Diagnostics')
         self.show()
 
     def paintEvent(self, e):
@@ -180,8 +182,8 @@ class Visualization(QtWidgets.QWidget):
                                                waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
-        cx = 500
-        cy = 500
+        cx = 130
+        cy = 130
         r = 100.0
         pen = QPen()
         pen.setWidth(3)
@@ -193,7 +195,7 @@ class Visualization(QtWidgets.QWidget):
         self.draw_steering_report(painter, cx, cy, r, Qt.blue)
 
         if self.image:
-            painter.drawImage(QRectF(1000, 200, self.image.size().width(), self.image.size().height()), self.image)
+            painter.drawImage(QRectF(350, 250, self.image.size().width(), self.image.size().height()), self.image)
 
         self.draw_next_traffic_light(painter)
         self.draw_dbw_enabled(painter)
@@ -221,7 +223,7 @@ class Visualization(QtWidgets.QWidget):
             pen.setColor(Qt.black)
             painter.setPen(pen)
             text = "%4d km/h" % (self.steering_report.speed*3.6)
-            painter.drawText(QPointF(cx, cy-r-40), text)
+            painter.drawText(QPointF(cx-20, cy+r+20), text)
 
             self.draw_steering(painter, cx, cy, r, 5, self.steering_report.steering_wheel_angle, color)
 
