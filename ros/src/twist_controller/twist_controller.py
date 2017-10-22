@@ -1,7 +1,6 @@
 import rospy
 
 from lowpass import LowPassFilter
-from pid import PID
 from yaw_controller import YawController
 from math import fabs
 from twiddle import PIDWithTwiddle
@@ -21,10 +20,10 @@ class Controller(object):
                  decel_limit,
                  accel_limit,
                  wheel_radius,
-                 wheel_base,  # YawController
-                 steer_ratio,  # YawController
-                 max_lat_accel,  # YawController
-                 max_steer_angle):  # YawController
+                 wheel_base,
+                 steer_ratio,
+                 max_lat_accel,
+                 max_steer_angle):
 
         self.brake_deadband = brake_deadband
         total_car_mass = vehicle_mass + fuel_capacity * GAS_DENSITY
@@ -46,7 +45,9 @@ class Controller(object):
                                             max_lat_accel=max_lat_accel,
                                             max_steer_angle=max_steer_angle)
 
-        self.accel_pid = PID(kp=1.5, ki=0.000, kd=0.1, mn=decel_limit, mx=accel_limit)
+        self.accel_pid = PIDWithTwiddle(kp=1.806471, ki=0.000635, kd=0.715603,
+                                        mn=decel_limit, mx=accel_limit,
+                                        optimize_params=False, iterations=10, tolerance=0.05)
 
     def control(self,
                 dbw_enabled,
