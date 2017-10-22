@@ -1,7 +1,6 @@
 import rospy
 
 from lowpass import LowPassFilter
-from pid import PID
 from yaw_controller import YawController
 from math import fabs
 from twiddle import PIDWithTwiddle
