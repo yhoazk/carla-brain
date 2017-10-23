@@ -294,7 +294,7 @@ class TLDetector(object):
             rospy.logerr("tl_detector: Pose is not set")
 
         if light:
-            state = self.get_light_state()
+            state = TrafficLight.RED # for now do not use classifier. just try to stop on RED. self.get_light_state()
             return light_wp, state
 
         return -1, TrafficLight.UNKNOWN
