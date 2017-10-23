@@ -65,7 +65,7 @@ class TLDetector(object):
         simulator. When testing on the vehicle, the color state will not be available.
         You'll need to rely on the position of the light and the camera image to predict it.
         '''
-        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
+        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
         self.pub_debug = rospy.Publisher("/image_debug", Image, queue_size=1)
 
@@ -80,7 +80,14 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        rospy.spin()
+        self.loop()
+
+
+    def loop(self):
+        """main tl_detector message processing loop"""
+        rate = rospy.Rate(4) # in Hz
+        while not rospy.is_shutdown():
+            rate.sleep()
 
 
     def pose_cb(self, msg):
