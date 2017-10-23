@@ -243,28 +243,32 @@ class Visualization(QtWidgets.QWidget):
         """
         if self.throttle_cmd_type:
             str = '??'
+            value = self.throttle_cmd
             if self.throttle_cmd_type == ThrottleCmd.CMD_PERCENT:
                 str = '%'
+                value *= 100
             elif self.throttle_cmd_type == ThrottleCmd.CMD_PEDAL:
                 str = 'pedal'
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Throttle: %2.2f %s " % (self.throttle_cmd, str)
+            text = "Throttle: %2.2f %s " % (value, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+20), text)
 
         if self.brake_cmd_type:
             str = '??'
+            value = self.brake_cmd
             if self.brake_cmd_type == BrakeCmd.CMD_PEDAL:
                 str = 'pedal'
             elif self.brake_cmd_type == BrakeCmd.CMD_PERCENT:
                 str = '%'
+                value *= 100
             elif self.brake_cmd_type == BrakeCmd.CMD_TORQUE:
                 str = 'torque Nm'
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Brake: %5.2f %s " % (self.brake_cmd, str)
+            text = "Brake: %5.2f %s " % (value, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+40), text)
 
 
