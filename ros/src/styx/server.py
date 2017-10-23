@@ -3,6 +3,8 @@
 import sys
 import threading
 import os
+from timeit import default_timer as timer
+
 import signal
 import socketio
 import eventlet
@@ -80,9 +82,16 @@ def trafficlights(sid, data):
     bridge.publish_traffic(data)
 
 
+
+prev_time = timer()
+
 @sio.on('image')
 def image(sid, data):
-    bridge.publish_camera(data)
+    global prev_time
+    if int((timer() - prev_time) * 1000)>=100:
+        # publish image every 100ms at most
+        bridge.publish_camera(data)
+        prev_time = timer()
 
 
 def spinning_worker():
