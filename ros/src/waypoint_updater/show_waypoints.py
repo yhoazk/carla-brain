@@ -14,7 +14,7 @@ from PyQt5.QtCore import Qt, QPointF, QRectF, QTimer
 import rospy
 from std_msgs.msg import Int32, Bool
 from geometry_msgs.msg import PoseStamped
-from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport
+from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport, ThrottleCmd, BrakeCmd
 from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
 import cv2
@@ -43,6 +43,12 @@ class Visualization(QtWidgets.QWidget):
         self.current_pose = None
         self.dbw_enabled = False
         self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
+        self.throttle_cmd_type = None
+        self.throttle_enable = None
+        self.throttle_cmd = None
+        self.brake_cmd_type = None
+        self.brake_enable = None
+        self.brake_cmd = None
 
         rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
@@ -53,6 +59,9 @@ class Visualization(QtWidgets.QWidget):
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb, queue_size=1)
         rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
+
+        rospy.Subscriber('/vehicle/throttle_cmd', ThrottleCmd, self.throttle_cb, queue_size=1)
+        rospy.Subscriber('/vehicle/brake_cmd', BrakeCmd, self.brake_cb, queue_size=1)
 
         self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
                                  'bgr8': QtGui.QImage.Format_RGB888}
@@ -193,6 +202,7 @@ class Visualization(QtWidgets.QWidget):
 
         self.draw_steering(painter, cx, cy, r, 10, self.steering, Qt.red)
         self.draw_steering_report(painter, cx, cy, r, Qt.blue)
+        self.draw_brake_throttle(painter, cx, cy, r, Qt.black)
 
         if self.image:
             painter.drawImage(QRectF(350, 250, self.image.size().width(), self.image.size().height()), self.image)
@@ -227,6 +237,37 @@ class Visualization(QtWidgets.QWidget):
 
             self.draw_steering(painter, cx, cy, r, 5, self.steering_report.steering_wheel_angle, color)
 
+    def draw_brake_throttle(self, painter, cx, cy, r, color):
+        """
+        Draw brake and throttle commands
+        """
+        if self.throttle_cmd_type:
+            str = '??'
+            if self.throttle_cmd_type == ThrottleCmd.CMD_PERCENT:
+                str = '%'
+            elif self.throttle_cmd_type == ThrottleCmd.CMD_PEDAL:
+                str = 'pedal'
+            pen = QPen()
+            pen.setColor(Qt.black)
+            painter.setPen(pen)
+            text = "Throttle: %2.2f %s " % (self.throttle_cmd, str)
+            painter.drawText(QPointF(cx-20-30, cy+r+20+20), text)
+
+        if self.brake_cmd_type:
+            str = '??'
+            if self.brake_cmd_type == BrakeCmd.CMD_PEDAL:
+                str = 'pedal'
+            elif self.brake_cmd_type == BrakeCmd.CMD_PERCENT:
+                str = '%'
+            elif self.brake_cmd_type == BrakeCmd.CMD_TORQUE:
+                str = 'torque Nm'
+            pen = QPen()
+            pen.setColor(Qt.black)
+            painter.setPen(pen)
+            text = "Brake: %5.2f %s " % (self.brake_cmd, str)
+            painter.drawText(QPointF(cx-20-30, cy+r+20+40), text)
+
+
     def waypoints_cb(self, msg):
         """
         Callback for /final_waypoints
@@ -242,6 +283,26 @@ class Visualization(QtWidgets.QWidget):
         :return:
         """
         self.steering = msg.steering_wheel_angle_cmd
+
+    def throttle_cb(self, msg):
+        """
+        Callback for /vehicle/throttle_cmd
+        :param msg:
+        :return:
+        """
+        self.throttle_enable = msg.enable
+        self.throttle_cmd_type = msg.pedal_cmd_type
+        self.throttle_cmd = msg.pedal_cmd
+
+    def brake_cb(self, msg):
+        """
+        Callback for /vehicle/brake_cmd
+        :param msg:
+        :return:
+        """
+        self.brake_enable = msg.enable
+        self.brake_cmd_type = msg.pedal_cmd_type
+        self.brake_cmd = msg.pedal_cmd
 
     def steering_report_cb(self, msg):
         """
