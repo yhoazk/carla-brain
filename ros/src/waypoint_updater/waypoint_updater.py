@@ -26,7 +26,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number via parameter
 PUBLISHER_RATE = 1  # Publishin rate on channel /final_waypoints
-MAX_SPEED = 15 # replace with the configurable one
+MAX_SPEED = 10 # replace with the configurable one
 
 dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
@@ -40,7 +40,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
-        rospy.Subscriber('/current_velocity',TwistStamped, self.velocity_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
         # for testing: Gives the state of the traffic lights
         rospy.Subscriber('/vehicle/traffic_lights',TrafficLightArray, self.tfl_state_cb)
 
@@ -243,7 +243,7 @@ class WaypointUpdater(object):
                 else:
                     speeds = 0 #np.zeros(LOOKAHEAD_WPS)
                 """
-                if self.current_velocity > 1:
+                if self.current_velocity > 2:
                     #speeds =  4*(LOOKAHEAD_WPS)/float(LOOKAHEAD_WPS - remaining_wp)
                     speeds =  min(10, .15*(distance - 5))
                 else:

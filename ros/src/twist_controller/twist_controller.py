@@ -45,7 +45,7 @@ class Controller(object):
                                             max_lat_accel=max_lat_accel,
                                             max_steer_angle=max_steer_angle)
 
-        self.accel_pid = PIDWithTwiddle(kp=1.806471, ki=0.000635, kd=0.715603,
+        self.accel_pid = PIDWithTwiddle(kp=1.806471, ki=0.00635, kd=0.715603,
                                         mn=decel_limit, mx=accel_limit,
                                         optimize_params=False, iterations=10, tolerance=0.05)
 
@@ -86,7 +86,7 @@ class Controller(object):
                 if -accel < self.brake_deadband:
                     accel = 0.0
                 
-                throttle, brake = 0, -accel * self.brake_car_factor
+                throttle, brake = 0, 20000 # (-accel * self.brake_car_factor) * 150.0
             else:
                 throttle, brake = accel, 0
 
