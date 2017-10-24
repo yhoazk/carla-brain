@@ -262,22 +262,23 @@ class TLDetector(object):
             self.lights_position.append([x, y])
 
         tl_wp_idx = self.get_next_tl_waypoint_index(self.lights_position)
-
-        if tl_wp_idx == -1:
-            return
-
-        stop_lines_wp_idxs = [self.calculate_closest_waypoint_idx(stop_line_xy)
-                              for stop_line_xy in self.lights_position]
-
         state = TrafficLight.UNKNOWN
-        PUBLISH_STOP_LINE_OFFSET_IDX = 20
-        for i in range(len(stop_lines_wp_idxs)):
-            if tl_wp_idx == stop_lines_wp_idxs[i]:
-                state = self.lights[i].state
-                self.update_state_and_publish(state, tl_wp_idx-PUBLISH_STOP_LINE_OFFSET_IDX)
-                break
 
-        rospy.logwarn("tl_detector: traffic_cb, tl_wp_idx={}, state={}".format(tl_wp_idx-PUBLISH_STOP_LINE_OFFSET_IDX, state))
+        if self.in_range:
+            stop_lines_wp_idxs = [self.calculate_closest_waypoint_idx(stop_line_xy)
+                                  for stop_line_xy in self.lights_position]
+            for i in range(len(stop_lines_wp_idxs)):
+                if tl_wp_idx == stop_lines_wp_idxs[i]:
+                    state = self.lights[i].state
+                    break
+            if state==TrafficLight.RED:
+                PUBLISH_STOP_LINE_OFFSET_IDX = 20
+                tl_wp_idx -= PUBLISH_STOP_LINE_OFFSET_IDX
+            else:
+                tl_wp_idx = -1
+
+        self.update_state_and_publish(state, tl_wp_idx)
+        rospy.logwarn("tl_detector: traffic_cb, tl_wp_idx={}, state={}".format(tl_wp_idx, state))
 
 
     def image_cb(self, msg):
@@ -307,21 +308,21 @@ class TLDetector(object):
         of times till we start using it. Otherwise the previous stable state is
         used.
         '''
-        STATE_COUNT_THRESHOLD = 1
         if self.state != state:
-            self.state_count = 0
+            self.state_count = 1
             self.state = state
-        elif self.state_count >= STATE_COUNT_THRESHOLD:
+        else:
+            self.state_count += 1
+
+        STATE_COUNT_THRESHOLD = 1
+        if self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            if state == TrafficLight.RED:
+            if self.state == TrafficLight.RED:
                 self.last_tl_wp_idx = tl_wp_idx
             else:
                 self.last_tl_wp_idx = -1
-            self.traffic_waypoint_pub.publish(Int32(tl_wp_idx))
-        else:
             self.traffic_waypoint_pub.publish(Int32(self.last_tl_wp_idx))
 
-        self.state_count += 1
 
 
 
