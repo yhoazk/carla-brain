@@ -3,9 +3,9 @@
 Waypoint loader.
 
 Loads waypoints from a file.
-Reads the velosity, in KPH from file.
+Reads the velocity, in KPH from file.
 Updates waypoints with the target velosity (in M/S).
-Sets last waypoints velosity so the car decelerates and stops at the end.
+Sets last waypoints velocity so the car decelerates and stops at the end.
 Publishes the calculated waypoints once to /base_waypoints topic.
 """
 import os
