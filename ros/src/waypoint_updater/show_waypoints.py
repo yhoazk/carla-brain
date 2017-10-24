@@ -7,6 +7,9 @@ Visualize the project
 import sys
 import math
 import threading
+from timeit import default_timer as timer
+from collections import deque
+
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtGui import QPen
 from PyQt5.QtCore import Qt, QPointF, QRectF, QTimer
@@ -17,8 +20,9 @@ from geometry_msgs.msg import PoseStamped
 from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport, ThrottleCmd, BrakeCmd
 from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
-import cv2
 from cv_bridge import CvBridge, CvBridgeError
+
+import cv2
 import numpy as np
 
 
