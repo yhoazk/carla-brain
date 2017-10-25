@@ -9,10 +9,11 @@ RUN sh -c 'echo "deb [ arch=amd64 ] http://packages.dataspeedinc.com/ros/ubuntu 
     sh -c 'echo "yaml http://packages.dataspeedinc.com/ros/ros-public-'$ROS_DISTRO'.yaml '$ROS_DISTRO'" > /etc/ros/rosdep/sources.list.d/30-dataspeed-public-'$ROS_DISTRO'.list'
 RUN rosdep update && \
     apt-get update && \
-    apt-get install -y --no-install-recommends ros-$ROS_DISTRO-dbw-mkz \
-                                               ros-$ROS_DISTRO-cv-bridge \
-                                               ros-$ROS_DISTRO-pcl-ros \
-                                               ros-$ROS_DISTRO-image-proc \
+    apt-get install -y --no-install-recommends "ros-$ROS_DISTRO-dbw-mkz=1.0.11-0xenial-20171020-111750-0400" \
+                                               "ros-$ROS_DISTRO-cv-bridge=1.12.4-0xenial-20170613-183021-0800" \
+                                               "ros-$ROS_DISTRO-pcl-ros=1.4.1-0xenial-20170727-185800-0800" \
+                                               "ros-$ROS_DISTRO-image-proc=1.12.20-0xenial-20170613-192315-0800" \
+                                               "ros-$ROS_DISTRO-rviz=1.12.13-0xenial-20170821-115734-0800" \
                                                netbase \
                                                python-pip \
                                                ccache && \
@@ -33,10 +34,12 @@ RUN pip install --no-cache-dir --upgrade "pip==9.0.1" && \
                                "keras==2.0.8" \
                                "tensorflow==1.3.0" \
                                "h5py==2.6.0" \
-                               "pylint==1.7.4" && \
+                               "pylint==1.7.4" \
+                               "matplotlib==2.1.0" && \
     mkdir -p /capstone && mkdir -p /root/.ccache
 
 VOLUME ["/capstone"]
 VOLUME ["/root/.ros/log/"]
 VOLUME ["/root/.ccache"]
+EXPOSE 4567
 WORKDIR /capstone/ros

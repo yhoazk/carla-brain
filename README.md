@@ -122,6 +122,15 @@ roslaunch launch/styx.launch &
 rosrun waypoint_updater show_waypoints.py
 ```
 
+### Rviz
+To run rviz within the docker environment, configure it as described above.
+Afterwards run within the container:
+```bash
+source devel/setup.sh
+rosrun rviz rviz &
+```
+Further documentation about rviz can be found in the [user guide](http://wiki.ros.org/rviz/UserGuide#Startup).
+
 ## Unit tests
 
 To run the unit tests call
