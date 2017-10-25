@@ -46,7 +46,7 @@ class TLDetector(object):
         self.base_waypoints_np = np.array([])
         rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
 
-        self.tl_config = yaml.load(rospy.get_param("/traffic_light_config"))
+        self.tl_config = yaml.safe_load(rospy.get_param("/traffic_light_config"))
 
         self.car_direction = 1
         self.last_car_wp_idx = None
