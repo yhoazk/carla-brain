@@ -7,6 +7,9 @@ Visualize the project
 import sys
 import math
 import threading
+from timeit import default_timer as timer
+from collections import deque
+
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtGui import QPen
 from PyQt5.QtCore import Qt, QPointF, QRectF, QTimer
@@ -17,9 +20,15 @@ from geometry_msgs.msg import PoseStamped
 from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport, ThrottleCmd, BrakeCmd
 from styx_msgs.msg import TrafficLightArray, Lane
 from sensor_msgs.msg import Image
-import cv2
 from cv_bridge import CvBridge, CvBridgeError
+
+import cv2
 import numpy as np
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 
 class Visualization(QtWidgets.QWidget):
@@ -43,12 +52,19 @@ class Visualization(QtWidgets.QWidget):
         self.current_pose = None
         self.dbw_enabled = False
         self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
+
         self.throttle_cmd_type = None
         self.throttle_enable = None
         self.throttle_cmd = None
+        deque_max_len = 50
+        self.throttle_deq = deque([], maxlen=deque_max_len)
+        self.throttle_t_deq = deque([], maxlen=deque_max_len)
+
         self.brake_cmd_type = None
         self.brake_enable = None
         self.brake_cmd = None
+        self.brake_deq = deque([], maxlen=deque_max_len)
+        self.brake_t_deq = deque([], maxlen=deque_max_len)
 
         rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb, queue_size=1)
         rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
@@ -68,22 +84,49 @@ class Visualization(QtWidgets.QWidget):
         self.image = QtGui.QImage(np.zeros([300,400,3]), 400, 300, self.img_format_table['bgr8'])
 
         self.initUI()
+
         self.timer = QTimer()
         self.timer.timeout.connect(self.repaint)
         self.timer.setInterval(300)
         self.timer.start()
 
+
     def initUI(self):
-        """"
+        """
         Initialize the gui
         """
         self.setGeometry(10, 10, 1000, 1000)
         self.setWindowTitle('Carla Diagnostics')
+        self.initMPL()
         self.show()
+
+    def initMPL(self):
+        """
+        initialize matplotlib objects
+        """
+        self.figure = Figure()
+
+        self.throttle_axes = self.figure.add_subplot(211)
+        self.throttle_axes.grid(True)
+
+        self.brake_axes = self.figure.add_subplot(212)
+        self.brake_axes.grid(True)
+
+        self.canvas = FigureCanvas(self.figure)
+        layout = QtWidgets.QVBoxLayout()
+        self.plot_widget = QtWidgets.QWidget(self)
+        mpl_x = 215
+        mpl_y = 395
+        mpl_w = 650
+        mpl_h = 380
+        self.plot_widget.setGeometry(mpl_x, mpl_y, mpl_w, mpl_h)
+        self.plot_widget.setLayout(layout)
+        layout.addWidget(self.canvas)
+
 
     def paintEvent(self, e):
         """
-        Paint all the ocntent
+        Paint all the content
         :param e:
         :return:
         """
@@ -91,10 +134,28 @@ class Visualization(QtWidgets.QWidget):
         painter.begin(self)
         self.drawPoints(painter)
         painter.end()
+        self.draw_plots()
+
+
+    def draw_plots(self):
+        """
+        re-draw matplotlib plots with fresh data
+        """
+        tm = timer()
+        self.throttle_axes.clear()
+        self.throttle_axes.plot([x-tm for x in self.throttle_t_deq], self.throttle_deq, alpha=0.5)
+        self.throttle_axes.set_ylabel("Throttle", fontsize=8)
+        self.throttle_axes.set_xlabel("Time", fontsize=8)
+        self.brake_axes.clear()
+        self.brake_axes.plot([x-tm for x in self.brake_t_deq], self.brake_deq, alpha=0.5)
+        self.brake_axes.set_ylabel("Brake", fontsize=8)
+        self.brake_axes.set_xlabel("Time", fontsize=8)
+        self.canvas.draw()
+
 
     def calculate_position(self, orig_x, orig_y):
         """
-        Readjust the position to be displayed within (150,150,950, 950)
+        Readjust the position to be displayed within window on most screens
         :param orig_x:
         :param orig_y:
         :return:
@@ -103,8 +164,8 @@ class Visualization(QtWidgets.QWidget):
         mov_y = -1*self.min_y 
         #rospy.logwarn("x and y %r %r   %r %r   %r %r", self.max_x, self.max_y, self.min_x, self.min_y, mov_x, mov_y)
 
-        x = (orig_x + mov_x) * 800 / (self.max_x - self.min_x) + 150
-        y = (orig_y + mov_y)* 800 / (self.max_y - self.min_y) + 150
+        x = 800 - (orig_x + mov_x) * 800 / (self.max_x - self.min_x) + 150
+        y = (orig_y + mov_y) * 800 / (self.max_y - self.min_y) + 40
         return (x, y)
 
     def draw_traffic_lights(self, painter):
@@ -205,7 +266,9 @@ class Visualization(QtWidgets.QWidget):
         self.draw_brake_throttle(painter, cx, cy, r, Qt.black)
 
         if self.image:
-            painter.drawImage(QRectF(350, 250, self.image.size().width(), self.image.size().height()), self.image)
+            image_x = 290
+            image_y = 90
+            painter.drawImage(QRectF(image_x, image_y, self.image.size().width(), self.image.size().height()), self.image)
 
         self.draw_next_traffic_light(painter)
         self.draw_dbw_enabled(painter)
@@ -243,28 +306,32 @@ class Visualization(QtWidgets.QWidget):
         """
         if self.throttle_cmd_type:
             str = '??'
+            value = self.throttle_cmd
             if self.throttle_cmd_type == ThrottleCmd.CMD_PERCENT:
                 str = '%'
+                value *= 100
             elif self.throttle_cmd_type == ThrottleCmd.CMD_PEDAL:
                 str = 'pedal'
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Throttle: %2.2f %s " % (self.throttle_cmd, str)
+            text = "Throttle: %2.2f %s " % (value, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+20), text)
 
         if self.brake_cmd_type:
             str = '??'
+            value = self.brake_cmd
             if self.brake_cmd_type == BrakeCmd.CMD_PEDAL:
                 str = 'pedal'
             elif self.brake_cmd_type == BrakeCmd.CMD_PERCENT:
                 str = '%'
+                value *= 100
             elif self.brake_cmd_type == BrakeCmd.CMD_TORQUE:
                 str = 'torque Nm'
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "Brake: %5.2f %s " % (self.brake_cmd, str)
+            text = "Brake: %5.2f %s " % (value, str)
             painter.drawText(QPointF(cx-20-30, cy+r+20+40), text)
 
 
@@ -293,6 +360,9 @@ class Visualization(QtWidgets.QWidget):
         self.throttle_enable = msg.enable
         self.throttle_cmd_type = msg.pedal_cmd_type
         self.throttle_cmd = msg.pedal_cmd
+        # add to deque for plotting
+        self.throttle_t_deq.append(timer())
+        self.throttle_deq.append(self.throttle_cmd)
 
     def brake_cb(self, msg):
         """
@@ -303,6 +373,9 @@ class Visualization(QtWidgets.QWidget):
         self.brake_enable = msg.enable
         self.brake_cmd_type = msg.pedal_cmd_type
         self.brake_cmd = msg.pedal_cmd
+        # add to deque for plotting
+        self.brake_t_deq.append(timer())
+        self.brake_deq.append(self.brake_cmd)
 
     def steering_report_cb(self, msg):
         """
