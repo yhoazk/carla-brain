@@ -1,3 +1,5 @@
+
+import numpy as np
 import rospy
 
 from lowpass import LowPassFilter
@@ -30,6 +32,8 @@ class Controller(object):
         self.brake_car_factor = total_car_mass * wheel_radius
 
         self.prev_time = rospy.get_time()
+        self.N = 20  # size of filter
+        self.accel_t1 = np.zeros(self.N)
 
         # twiddle algorithm is disabled so iterations and tolerance are here to show
         # what values to use when you want to activate twiddle.
@@ -48,6 +52,8 @@ class Controller(object):
         self.accel_pid = PIDWithTwiddle(kp=1.806471, ki=0.00635, kd=0.715603,
                                         mn=decel_limit, mx=accel_limit,
                                         optimize_params=False, iterations=10, tolerance=0.05)
+
+
 
     def control(self,
                 dbw_enabled,
@@ -77,18 +83,26 @@ class Controller(object):
                           steer, cte, corrective_steer, predictive_steer)
 
             vel_delta = linear_velocity - current_velocity
-            accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
+            res_accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
+            
+            ###### Filter start
+            self.accel_t1 = np.delete(np.concatenate((self.accel_t1, np.ones(1) * res_accel)), 0)
+            c_sum = np.cumsum(np.insert(self.accel_t1, 0, 0))
+            res_accel = (c_sum[self.N:] - c_sum[:-self.N])/self.N
+            ###### Filter End
+
 
             rospy.logdebug('desired vel = %f, current vel = %f, accel = %f',
-                          linear_velocity, current_velocity, accel)
+                          linear_velocity, current_velocity, res_accel)
 
-            if accel < 0.0:
-                if -accel < self.brake_deadband:
-                    accel = 0.0
+            if res_accel < 0.0 or linear_velocity < current_velocity:
+                self.accel_t1 = np.zeros(self.N) # clean the buffer
+                if -res_accel < self.brake_deadband:
+                    res_accel = 0.0
                 
-                throttle, brake = 0, 20000 # (-accel * self.brake_car_factor) * 150.0
+                throttle, brake = 0, 20000 # (-res_accel * self.brake_car_factor) * 150.0
             else:
-                throttle, brake = accel, 0
+                throttle, brake = res_accel, 0
 
         else:
             self.steer_pid.reset()
