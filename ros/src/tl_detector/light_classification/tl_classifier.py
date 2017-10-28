@@ -24,9 +24,17 @@ class TLClassifier(object):
         """
         #TODO implement light color prediction
 
-        rospy.logwarn("tl_classifier: Classification requested")
+        #rospy.logwarn("tl_classifier: Classification requested")
 
-        self.l_channel = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)[:,:,0]
+        ### Classification based on which part of the traffic light image (top, mid, or bottom) seems to be lit up
+
+        self.img_h, self.img_w, self.img_d = image.shape
+
+        height_trim = 0.1
+        width_trim = 0.1
+
+        self.l_channel = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)[int(height_trim*self.img_h):int((1.0 - height_trim)*self.img_h),int(width_trim*self.img_w):int((1.0-width_trim)*self.img_w),0]
+
 
         self.img_h, self.img_w = self.l_channel.shape
 
@@ -57,12 +65,11 @@ class TLClassifier(object):
         count_result['GREEN'] = bottom
 
 
+
+
         #evaluate which color is most likely
 
         max_count = max(count_result, key=count_result.get)
-
-        confidence = float(count_result[max_count]) / float(count_result['RED'] + count_result['YELLOW'] + count_result['GREEN'] )
-        print('confidence: ', confidence)
 
         if max_count == 'RED':
             rospy.loginfo("tl_classifier: RED light detected") 
