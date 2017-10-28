@@ -7,7 +7,7 @@ from yaw_controller import YawController
 from math import fabs
 from twiddle import PIDWithTwiddle
 from dbw_mkz_msgs.msg import BrakeCmd
-
+from lpf_2stages import quick_lpf as lpf
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -35,8 +35,7 @@ class Controller(object):
         self.decel_limit = decel_limit
 
         self.prev_time = rospy.get_time()
-        self.N = 20  # size of filter
-        self.accel_t1 = np.zeros(self.N)
+        self.avg_filter = lpf(nT1 = 2, nT2=15)
 
         # twiddle algorithm is disabled so iterations and tolerance are here to show
         # what values to use when you want to activate twiddle.
@@ -89,9 +88,12 @@ class Controller(object):
             res_accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
             
             ###### Filter start
-            self.accel_t1 = np.delete(np.concatenate((self.accel_t1, np.ones(1) * res_accel)), 0)
-            c_sum = np.cumsum(np.insert(self.accel_t1, 0, 0))
-            res_accel = (c_sum[self.N:] - c_sum[:-self.N])/self.N
+            #self.accel_t1 = np.delete(np.concatenate((self.accel_t1, np.ones(1) * res_accel)), 0)
+            #c_sum = np.cumsum(np.insert(self.accel_t1, 0, 0))
+            #res_accel = (c_sum[self.N:] - c_sum[:-self.N])/self.N
+            # 
+            res_accel = self.avg_filter.filter(res_accel)
+
             ###### Filter End
 
 
@@ -99,7 +101,7 @@ class Controller(object):
                           linear_velocity, current_velocity, res_accel)
 
             if res_accel < 0.0 or linear_velocity < current_velocity:
-                self.accel_t1 = np.zeros(self.N) # clean the buffer
+                self.avg_filter.clear()
                 if -res_accel < self.brake_deadband:
                     res_accel = 0.0
                 
