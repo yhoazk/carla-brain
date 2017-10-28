@@ -192,45 +192,49 @@ class TLDetector(object):
             int: index of waypoint closest to the upcoming stop line for a traffic light (-1 if none exists)
         """
         tl_wp_idx = -1
-        if self.pose:
-            # find indices of waypoints for stop line positions (given by pairs like [1148.56, 1184.65])
-            stop_lines_wp_idxs = [self.calculate_closest_waypoint_idx(stop_line_xy)
-                                       for stop_line_xy in stop_line_positions]
-
-            # find car waypoint index
-            car_wp_idx = self.calculate_closest_waypoint_idx(self.pose.pose)
-            if self.last_car_wp_idx is not None:
-                if (self.last_car_wp_idx - car_wp_idx) <= 0:
-                    self.car_direction = 1
-                else:
-                    self.car_direction = -1
-            else:
-                self.car_direction = 1
-            self.last_car_wp_idx = car_wp_idx
-
-            # Find the closest upcoming stop line waypoint index in front of the car
-            INDEX_DISTANCE_THRESHOLD = 150
-            min_dist = 1e+10
-            wp1 = self.base_waypoints_np[car_wp_idx]
-            for i in range(car_wp_idx, car_wp_idx+self.car_direction*INDEX_DISTANCE_THRESHOLD, self.car_direction):
-                if np.isin(i, stop_lines_wp_idxs):
-                    wp2 = self.base_waypoints_np[i]
-                    dist = np.linalg.norm(wp1 - wp2)
-                    if dist < min_dist:
-                        tl_wp_idx = i
-                        min_dist = dist
-
-            self.last_in_range = self.in_range
-            if min_dist < 1e+10:
-                self.in_range = True
-            else:
-                self.in_range = False
-
-            if self.in_range and not self.last_in_range:
-                rospy.logwarn("tl_detector: TL in range SL_WP: {}, Car_WP: {}".format(tl_wp_idx, car_wp_idx))
-                self.last_in_range = self.in_range
-        else:
+        if self.pose is None:
             rospy.logerr("tl_detector: Pose is not set")
+            return tl_wp_idx
+        if len(self.base_waypoints_np)==0:
+            rospy.logerr("tl_detector: waypoints numpy array not set")
+            return tl_wp_idx
+
+        # find indices of waypoints for stop line positions (given by pairs like [1148.56, 1184.65])
+        stop_lines_wp_idxs = [self.calculate_closest_waypoint_idx(stop_line_xy)
+                                   for stop_line_xy in stop_line_positions]
+
+        # find car waypoint index
+        car_wp_idx = self.calculate_closest_waypoint_idx(self.pose.pose)
+        if self.last_car_wp_idx is not None:
+            if (self.last_car_wp_idx - car_wp_idx) <= 0:
+                self.car_direction = 1
+            else:
+                self.car_direction = -1
+        else:
+            self.car_direction = 1
+        self.last_car_wp_idx = car_wp_idx
+
+        # Find the closest upcoming stop line waypoint index in front of the car
+        INDEX_DISTANCE_THRESHOLD = 150
+        min_dist = 1e+10
+        wp1 = self.base_waypoints_np[car_wp_idx]
+        for i in range(car_wp_idx, car_wp_idx+self.car_direction*INDEX_DISTANCE_THRESHOLD, self.car_direction):
+            if np.isin(i, stop_lines_wp_idxs):
+                wp2 = self.base_waypoints_np[i]
+                dist = np.linalg.norm(wp1 - wp2)
+                if dist < min_dist:
+                    tl_wp_idx = i
+                    min_dist = dist
+
+        self.last_in_range = self.in_range
+        if min_dist < 1e+10:
+            self.in_range = True
+        else:
+            self.in_range = False
+
+        if self.in_range and not self.last_in_range:
+            rospy.logwarn("tl_detector: TL in range SL_WP: {}, Car_WP: {}".format(tl_wp_idx, car_wp_idx))
+            self.last_in_range = self.in_range
 
         return tl_wp_idx
 
