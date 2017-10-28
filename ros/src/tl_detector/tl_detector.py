@@ -79,7 +79,7 @@ class TLDetector(object):
 
     def loop(self):
         """main tl_detector message processing loop"""
-        rate = rospy.Rate(4) # in Hz
+        rate = rospy.Rate(10) # in Hz
         while not rospy.is_shutdown():
             rate.sleep()
 
