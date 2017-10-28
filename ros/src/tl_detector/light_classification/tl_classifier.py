@@ -26,12 +26,12 @@ class TLClassifier(object):
 
         rospy.logwarn("tl_classifier: Classification requested")
 
-        l_channel = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)[:,:,0]
+        self.l_channel = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)[:,:,0]
 
-        img_h, img_w = l.shape
+        self.img_h, self.img_w = self.l_channel.shape
 
-        top_third_marker = int(img_h / 3)
-        bottom_third_marker = img_h - top_third_marker
+        self.top_third_marker = int(self.img_h / 3)
+        self.bottom_third_marker = self.img_h - self.top_third_marker
 
         top = 0
         mid = 0
@@ -39,41 +39,44 @@ class TLClassifier(object):
 
         count_result = {'RED': 0 , 'YELLOW': 0, 'GREEN': 0}
 
-        for i in range(top_third_marker):
-            for j in range(img_w):
-                top += l[i][j]
+        for i in range(self.top_third_marker):
+            for j in range(self.img_w):
+                top += self.l_channel[i][j]
         count_result['RED'] = top
         
 
-        for i in range(top_third_marker, bottom_third_marker):
-            for j in range(img_w):
-                mid += l[i][j]
+        for i in range(self.top_third_marker, self.bottom_third_marker):
+            for j in range(self.img_w):
+                mid += self.l_channel[i][j]
         count_result['YELLOW'] = mid
 
 
-        for i in range(bottom_third_marker, img_h):
-            for j in range(img_w):
-                bottom += l[i][j]
+        for i in range(self.bottom_third_marker, self.img_h):
+            for j in range(self.img_w):
+                bottom += self.l_channel[i][j]
         count_result['GREEN'] = bottom
 
 
         #evaluate which color is most likely
 
-        max_count = max(d, key=d.get)
+        max_count = max(count_result, key=count_result.get)
+
+        confidence = float(count_result[max_count]) / float(count_result['RED'] + count_result['YELLOW'] + count_result['GREEN'] )
+        print('confidence: ', confidence)
 
         if max_count == 'RED':
+            rospy.loginfo("tl_classifier: RED light detected") 
             return TrafficLight.RED
-            rospy.logwarn("tl_classifier: RED light detected") 
 
         elif max_count == 'YELLOW':
+            rospy.loginfo("tl_classifier: YELLOW light detected") 
             return TrafficLight.YELLOW
-            rospy.logwarn("tl_classifier: YELLOW light detected") 
 
         elif max_count == 'GREEN':
-            return TrafficLight.GREEN
-            rospy.logwarn("tl_classifier: RED light detected") 
+            rospy.loginfo("tl_classifier: GREEN light detected")
+            return TrafficLight.GREEN 
 
         else:
-            return TrafficLight.UNKNOWN
             rospy.logwarn("tl_classifier: ERROR - cannot classify light")
+            return TrafficLight.UNKNOWN
 
