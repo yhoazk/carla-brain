@@ -15,7 +15,8 @@ You can use this class instead of a regular PID controller.
 
 
 class PIDWithTwiddle(object):
-    def __init__(self, kp, ki, kd, mn, mx, optimize_params=False, iterations=None, tolerance=None):
+    def __init__(self, name, kp, ki, kd, mn, mx, optimize_params=False, iterations=None, tolerance=None):
+        self.name = name
         self.iter = 0
         self.mn = mn
         self.mx = mx
@@ -44,8 +45,8 @@ class PIDWithTwiddle(object):
         self.pid.reset()
 
     def mutate_pid(self):
-        rospy.logwarn('mutating pid with params: kp=%f, ki=%f, kd=%f --- best_error: %f, iteration: %d',
-                      self.p[0], self.p[1], self.p[2], self.best_error, self.iter)
+        rospy.logwarn('[%s] mutating pid with params: kp=%f, ki=%f, kd=%f --- best_error: %f, iteration: %d',
+                      self.name, self.p[0], self.p[1], self.p[2], self.best_error, self.iter)
         self.error = 0
         self.iter = 0
         self.pid = PID(kp=self.p[0], ki=self.p[1],
@@ -53,8 +54,8 @@ class PIDWithTwiddle(object):
 
     def reached_tolerance(self):
         if sum(self.dp) < self.tolerance:
-            rospy.logwarn('Tolerance of %f achieved kp=%f, ki=%f, kd=%f with best error: %f',
-                          self.tolerance, self.p[0], self.p[1], self.p[2], self.best_error)
+            rospy.logwarn('[%s] Tolerance of %f achieved kp=%f, ki=%f, kd=%f with best error: %f',
+                          self.name, self.tolerance, self.p[0], self.p[1], self.p[2], self.best_error)
             return True
         return False
 
@@ -93,15 +94,15 @@ class PIDWithTwiddle(object):
             self.best_error = self.error
             self.advance_param()
             self.current_state = 0
-            rospy.logwarn('initial best error: %f, kp=%f, ki=%f, kd=%f',
-                          self.best_error, self.p[0], self.p[1], self.p[2])
+            rospy.logwarn('[%s] initial best error: %f, kp=%f, ki=%f, kd=%f',
+                          self.name, self.best_error, self.p[0], self.p[1], self.p[2])
 
             return
 
         if self.current_state == 0:
             if self.error < self.best_error:
-                rospy.logwarn('new best error (0) kp=%f, ki=%f, kd=%f --- best_error: %f, new best error: %f',
-                              self.p[0], self.p[1], self.p[2], self.best_error, self.error)
+                rospy.logwarn('[%s] new best error (0) kp=%f, ki=%f, kd=%f --- best_error: %f, new best error: %f',
+                              self.name, self.p[0], self.p[1], self.p[2], self.best_error, self.error)
                 self.best_error = self.error
                 self.dp[self.current_param] *= 1.1
                 self.advance_param()
@@ -115,8 +116,8 @@ class PIDWithTwiddle(object):
 
         if self.current_state == 1:
             if self.error < self.best_error:
-                rospy.logwarn('new best error (1) kp=%f, ki=%f, kd=%f --- best_error: %f, new best error: %f',
-                              self.p[0], self.p[1], self.p[2], self.best_error, self.error)
+                rospy.logwarn('[%s] new best error (1) kp=%f, ki=%f, kd=%f --- best_error: %f, new best error: %f',
+                              self.name, self.p[0], self.p[1], self.p[2], self.best_error, self.error)
 
                 self.best_err = self.error
                 self.dp[self.current_param] *= 1.1

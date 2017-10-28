@@ -6,6 +6,8 @@ from lowpass import LowPassFilter
 from yaw_controller import YawController
 from math import fabs
 from twiddle import PIDWithTwiddle
+from dbw_mkz_msgs.msg import BrakeCmd
+
 
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
@@ -30,6 +32,7 @@ class Controller(object):
         self.brake_deadband = brake_deadband
         total_car_mass = vehicle_mass + fuel_capacity * GAS_DENSITY
         self.brake_car_factor = total_car_mass * wheel_radius
+        self.decel_limit = decel_limit
 
         self.prev_time = rospy.get_time()
         self.N = 20  # size of filter
@@ -38,7 +41,7 @@ class Controller(object):
         # twiddle algorithm is disabled so iterations and tolerance are here to show
         # what values to use when you want to activate twiddle.
         # kp, ki and kd are values found from previous twiddle runs.
-        self.steer_pid = PIDWithTwiddle(kp=0.607900, ki=0.000172, kd=1.640951,
+        self.steer_pid = PIDWithTwiddle("steering PID", kp=0.607900, ki=0.000172, kd=1.640951,
                              mn=-max_steer_angle, mx=max_steer_angle,
                              optimize_params=False, iterations=10, tolerance=0.05)
 
@@ -49,7 +52,7 @@ class Controller(object):
                                             max_lat_accel=max_lat_accel,
                                             max_steer_angle=max_steer_angle)
 
-        self.accel_pid = PIDWithTwiddle(kp=1.806471, ki=0.00635, kd=0.715603,
+        self.accel_pid = PIDWithTwiddle("t/b PID", kp=1.806471, ki=0.00635, kd=0.715603,
                                         mn=decel_limit, mx=accel_limit,
                                         optimize_params=False, iterations=10, tolerance=0.05)
 
@@ -100,7 +103,7 @@ class Controller(object):
                 if -res_accel < self.brake_deadband:
                     res_accel = 0.0
                 
-                throttle, brake = 0, 20000 # (-res_accel * self.brake_car_factor) * 150.0
+                throttle, brake = 0, BrakeCmd.TORQUE_MAX # (-res_accel * self.brake_car_factor) * 150.0
             else:
                 throttle, brake = res_accel, 0
 

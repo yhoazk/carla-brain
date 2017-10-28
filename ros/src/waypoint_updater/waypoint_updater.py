@@ -210,49 +210,48 @@ class WaypointUpdater(object):
         lane.header.seq = self.seq
         lane.waypoints = [self.base_waypoints[i] for i in waypoint_indices]
 
-        if self.closest_obstacle is None or self.current_tfl_state != 2:
+        if self.closest_obstacle is None or self.closest_obstacle > waypoint_indices[-1] or self.current_tfl_state != 2:
             # There is no traffic light near us, go full speed
             self.current_velocity = self.current_velocity+0.5 if self.current_velocity < MAX_SPEED else self.current_velocity
             speeds = np.linspace(self.current_velocity, MAX_SPEED, 1+(LOOKAHEAD_WPS//17))
             full_speed = np.ones(16*LOOKAHEAD_WPS//17) * MAX_SPEED
             speeds = 10# np.concatenate((speeds, full_speed))
 
-        else:
-            # There is a traffic light in front
-            if self.current_tfl_state ==  2:
-                remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead)
-                distance = self.distance(lane.waypoints, 0, self.closest_obstacle - start_index)
-                """ Keeping comments for future reference in this commit only
-                rospy.logwarn("BreakSpeed")
-                rospy.logwarn("rem wp: " + str(remaining_wp))
-                if self.current_velocity > 1.5 and remaining_wp >= 55:
-                    rospy.logwarn("rm sp: " + str(100*(remaining_wp-LOOKAHEAD_WPS)/LOOKAHEAD_WPS))
-                    # Giving some extra space to reach speed == 0
-                    remaining_wp = remaining_wp - 15 if remaining_wp > 15 else remaining_wp
-                    # generate the ramp from current speed to full stop in the remaining space
-                    #breaking = np.linspace(self.current_velocity-0.2, 0, remaining_wp)
-                    breaking = np.ones(remaining_wp) * self.current_velocity * 0.9
-                    # Adjust the vector to LOOKAHEAD_WPS size
-                    speeds = np.concatenate((breaking, np.zeros(LOOKAHEAD_WPS - len(breaking))))
-                    #speeds =  100*(remaining_wp - LOOKAHEAD_WPS)/LOOKAHEAD_WPS #np.zeros(LOOKAHEAD_WPS)
-                    speeds = 7.5
-                elif 55 > remaining_wp >= 35:
-                    speeds = 5
-                elif 35 > remaining_wp > 15:
-                    speeds = 3
-                else:
-                    speeds = 0 #np.zeros(LOOKAHEAD_WPS)
-                """
-                if self.current_velocity > 2:
-                    #speeds =  4*(LOOKAHEAD_WPS)/float(LOOKAHEAD_WPS - remaining_wp)
-                    speeds =  min(10, .15*(distance - 5))
-                else:
-                    speeds = 0
-
+        # There is a traffic light in front
+        elif self.current_tfl_state ==  2:
+            remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead)
+            distance = self.distance(lane.waypoints, 0, self.closest_obstacle - start_index)
+            """ Keeping comments for future reference in this commit only
+            rospy.logwarn("BreakSpeed")
+            rospy.logwarn("rem wp: " + str(remaining_wp))
+            if self.current_velocity > 1.5 and remaining_wp >= 55:
+                rospy.logwarn("rm sp: " + str(100*(remaining_wp-LOOKAHEAD_WPS)/LOOKAHEAD_WPS))
+                # Giving some extra space to reach speed == 0
+                remaining_wp = remaining_wp - 15 if remaining_wp > 15 else remaining_wp
+                # generate the ramp from current speed to full stop in the remaining space
+                #breaking = np.linspace(self.current_velocity-0.2, 0, remaining_wp)
+                breaking = np.ones(remaining_wp) * self.current_velocity * 0.9
+                # Adjust the vector to LOOKAHEAD_WPS size
+                speeds = np.concatenate((breaking, np.zeros(LOOKAHEAD_WPS - len(breaking))))
+                #speeds =  100*(remaining_wp - LOOKAHEAD_WPS)/LOOKAHEAD_WPS #np.zeros(LOOKAHEAD_WPS)
+                speeds = 7.5
+            elif 55 > remaining_wp >= 35:
+                speeds = 5
+            elif 35 > remaining_wp > 15:
+                speeds = 3
             else:
-                speeds = np.linspace(self.current_velocity, MAX_SPEED, 1+(LOOKAHEAD_WPS//8))
-                full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
-                speeds = np.concatenate((speeds, full_speed))
+                speeds = 0 #np.zeros(LOOKAHEAD_WPS)
+            """
+            if self.current_velocity > 2:
+                #speeds =  4*(LOOKAHEAD_WPS)/float(LOOKAHEAD_WPS - remaining_wp)
+                speeds =  min(10, .15*(distance - 5))
+            else:
+                speeds = 0
+
+        else:
+            speeds = np.linspace(self.current_velocity, MAX_SPEED, 1+(LOOKAHEAD_WPS//8))
+            full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
+            speeds = np.concatenate((speeds, full_speed))
 
         rospy.logwarn(speeds)
 
