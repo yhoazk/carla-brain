@@ -1,7 +1,5 @@
 from styx_msgs.msg import TrafficLight
 import rospy
-import numpy as np
-#import matplotlib.pyplot as plt
 import os
 import cv2
 
@@ -10,7 +8,7 @@ import cv2
 class TLClassifier(object):
     def __init__(self):
         #TODO load classifier
-        pass 
+        pass
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -23,7 +21,6 @@ class TLClassifier(object):
 
         """
         #TODO implement light color prediction
-        
 
         #rospy.logwarn("tl_classifier: Classification requested")
 
@@ -87,4 +84,3 @@ class TLClassifier(object):
         else:
             rospy.logwarn("tl_classifier: ERROR - cannot classify light")
             return TrafficLight.UNKNOWN
-

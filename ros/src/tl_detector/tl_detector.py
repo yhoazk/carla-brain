@@ -57,7 +57,6 @@ class TLDetector(object):
         self.last_tl_wp_idx = -1
         self.stop_lines_wp_idxs = []
         self.state_count = 0
-        self.tf_tst = TrafficLight.UNKNOWN 
 
         self.camera_image = None
         rospy.Subscriber('/image_color', Image, self.image_cb, queue_size=1)
@@ -70,7 +69,7 @@ class TLDetector(object):
         classifier by sending the current color state of all traffic lights in the
         simulator. When testing on the vehicle, the color state will not be available.
         '''
-        rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
+        #rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
 
         """ Publish the index of the waypoint nearest to the upcoming red traffic light"""
         self.traffic_waypoint_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
@@ -105,7 +104,7 @@ class TLDetector(object):
         """
         if not self.has_image:
             return TrafficLight.UNKNOWN
-        return self.tf_tst 
+
         start_time = timer()
 
         # detect bounding boxes of what looks like traffic lights
