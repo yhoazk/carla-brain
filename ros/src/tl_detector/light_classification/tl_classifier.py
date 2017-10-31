@@ -1,7 +1,5 @@
 from styx_msgs.msg import TrafficLight
 import rospy
-import numpy as np
-#import matplotlib.pyplot as plt
 import os
 import cv2
 
@@ -86,4 +84,3 @@ class TLClassifier(object):
         else:
             rospy.logwarn("tl_classifier: ERROR - cannot classify light")
             return TrafficLight.UNKNOWN
-

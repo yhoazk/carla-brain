@@ -36,6 +36,7 @@ class Controller(object):
 
         self.prev_time = rospy.get_time()
         self.avg_filter = lpf(nT1 = 2, nT2=15)
+        self.avg_filter_brake = lpf(nT1 = 7, nT2=15)
 
         # twiddle algorithm is disabled so iterations and tolerance are here to show
         # what values to use when you want to activate twiddle.
@@ -88,12 +89,7 @@ class Controller(object):
             res_accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
             
             ###### Filter start
-            #self.accel_t1 = np.delete(np.concatenate((self.accel_t1, np.ones(1) * res_accel)), 0)
-            #c_sum = np.cumsum(np.insert(self.accel_t1, 0, 0))
-            #res_accel = (c_sum[self.N:] - c_sum[:-self.N])/self.N
-            # 
             res_accel = self.avg_filter.filter(res_accel)
-
             ###### Filter End
 
 
@@ -105,7 +101,7 @@ class Controller(object):
                 if -res_accel < self.brake_deadband:
                     res_accel = 0.0
                 
-                throttle, brake = 0, BrakeCmd.TORQUE_MAX # (-res_accel * self.brake_car_factor) * 150.0
+                throttle, brake = 0, self.avg_filter_brake.filter(BrakeCmd.TORQUE_MAX) # (-res_accel * self.brake_car_factor) * 150.0
             else:
                 throttle, brake = res_accel, 0
 
