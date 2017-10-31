@@ -2,20 +2,20 @@
 """
 Traffic Light Detector node for Carla
 """
+from threading import Lock, Thread, Event
+
 from timeit import default_timer as timer
+import yaml
+import numpy as np
 
 import rospy
 from std_msgs.msg import Int32
-from geometry_msgs.msg import PoseStamped, Pose
-from styx_msgs.msg import TrafficLightArray, TrafficLight
-from styx_msgs.msg import Lane
+from geometry_msgs.msg import PoseStamped
+from styx_msgs.msg import Lane, TrafficLight
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-import tf
 
 import cv2
-import yaml
-import numpy as np
 
 from light_classification.tl_classifier import TLClassifier
 from tl_detector_segmentation import TLDetectorSegmentation
@@ -33,6 +33,15 @@ class TLDetector(object):
     """
     def __init__(self):
         rospy.init_node('tl_detector')
+
+        self.lock = Lock()
+        self.missed_images = -1
+        self.event = Event()
+        self.event.clear()
+        self.thread = Thread(target=self.detector_thread)
+        self.thread.start()
+
+        self.has_image = None
 
         self.bridge = CvBridge()
         self.detector = TLDetectorSegmentation()  # TLDetector that uses semantic segmentation
@@ -73,13 +82,8 @@ class TLDetector(object):
         self.traffic_waypoint_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
         self.image_debug_pub = rospy.Publisher("/image_debug", Image, queue_size=1)
 
-        self.loop()
-
-    def loop(self):
-        """main tl_detector message processing loop"""
-        rate = rospy.Rate(10) # in Hz
-        while not rospy.is_shutdown():
-            rate.sleep()
+        rospy.spin()
+        self.thread.join(timeout=5)
 
     def pose_cb(self, msg):
         """Callback to receive pose
@@ -120,7 +124,7 @@ class TLDetector(object):
             x2 = box[1][0]
             y2 = box[1][1]
             tl_image = cv_image[y1:y2, x1:x2]
-            classifier_size = (128,128)
+            #classifier_size = (128,128)
             #resized = cv2.resize(tl_image, classifier_size, cv2.INTER_LINEAR)
             resized = tl_image
             # Classification
@@ -282,30 +286,46 @@ class TLDetector(object):
         rospy.logwarn("tl_detector: traffic_cb, tl_wp_idx={}, state={}, {}ms".format(tl_wp_idx, state,
                                                                                      int(float(timer()-start)*1000.)))
 
-    def image_cb(self, msg):
+    def detector_thread(self):
         """Identifies red lights in the incoming camera image and publishes the index
             of the waypoint closest to the red light's stop line to /traffic_waypoint
+        """
+        while not rospy.is_shutdown() and self.event.wait():
+            self.lock.acquire()
+            self.event.clear()
+            missed_images = self.missed_images
+            self.missed_images = -1
+            self.lock.release()
+            start = timer()
+
+            tl_wp_idx = self.get_next_tl_waypoint_index(self.tl_config['stop_line_positions'])
+            wp_time = int(float(timer()-start)*1000.)
+
+            rospy.logwarn("tl_detector: detector_thread next_wp {}, {}ms: missed images {}".format(tl_wp_idx, wp_time, missed_images))
+
+            if tl_wp_idx > -1:
+                start = timer()
+                state = self.get_light_state()
+                img_time = int(float(timer() - start) * 1000.)
+                self.update_state_and_publish(state, tl_wp_idx)
+                rospy.logwarn("tl_detector: detector_thread state={}, {}ms".format(state, img_time))
+            else:
+                self.update_state_and_publish(TrafficLight.RED, -1)
+
+
+    def image_cb(self, msg):
+        """Incoming camera image callback
 
         Args:
             msg (Image): image from car-mounted camera
 
         """
-        start = timer()
+        self.lock.acquire()
         self.has_image = True
         self.camera_image = msg
-        tl_wp_idx = self.get_next_tl_waypoint_index(self.tl_config['stop_line_positions'])
-        wp_time = int(float(timer()-start)*1000.)
-
-        rospy.logwarn("tl_detector: image_cb next_wp {}, {}ms".format(tl_wp_idx, wp_time))
-
-        if tl_wp_idx > -1:
-            start = timer()
-            state = self.get_light_state()
-            img_time = int(float(timer() - start) * 1000.)
-            rospy.logwarn("tl_detector: image_cb state={}, {}ms".format(state, img_time))
-            self.update_state_and_publish(state, tl_wp_idx)
-        else:
-            self.update_state_and_publish(TrafficLight.RED, -1)
+        self.missed_images += 1
+        self.event.set()
+        self.lock.release()
 
     def update_state_and_publish(self, state, tl_wp_idx):
         """
