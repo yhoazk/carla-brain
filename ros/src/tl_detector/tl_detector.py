@@ -124,6 +124,12 @@ class TLDetector(object):
             x2 = box[1][0]
             y2 = box[1][1]
             tl_image = cv_image[y1:y2, x1:x2]
+
+            # Skip small images to avoid false positives
+            min_img_height = 50
+            if tl_image.shape[0] < min_img_height:
+                rospy.logwarn("tl_detector: TL image detected too small and likely a false positive. Discarding & continuing.")
+                continue
    
             # Classification
             rospy.logdebug("tl_detector:About to call classifier")
