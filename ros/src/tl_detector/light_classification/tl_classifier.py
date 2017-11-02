@@ -7,7 +7,6 @@ import cv2
 
 class TLClassifier(object):
     def __init__(self):
-        #TODO load classifier
         pass
 
     def get_classification(self, image):
@@ -20,9 +19,9 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        #TODO implement light color prediction
+  
 
-        #rospy.logwarn("tl_classifier: Classification requested")
+        rospy.logdebug("tl_classifier: Classification requested")
 
         ### Classification based on which part of the traffic light image (top, mid, or bottom) seems to be lit up
 
@@ -63,22 +62,20 @@ class TLClassifier(object):
         count_result['GREEN'] = bottom
 
 
-
-
         #evaluate which color is most likely
 
         max_count = max(count_result, key=count_result.get)
 
         if max_count == 'RED':
-            rospy.loginfo("tl_classifier: RED light detected") 
+            rospy.logdebug("tl_classifier: RED light detected") 
             return TrafficLight.RED
 
         elif max_count == 'YELLOW':
-            rospy.loginfo("tl_classifier: YELLOW light detected") 
+            rospy.logdebug("tl_classifier: YELLOW light detected") 
             return TrafficLight.YELLOW
 
         elif max_count == 'GREEN':
-            rospy.loginfo("tl_classifier: GREEN light detected")
+            rospy.logdebug("tl_classifier: GREEN light detected")
             return TrafficLight.GREEN 
 
         else:
