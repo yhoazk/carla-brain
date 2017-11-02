@@ -109,7 +109,7 @@ class WaypointUpdater(object):
         Calculates the euclidean distance between two waypoints given
         """
         dist = 0
-        for i in range(wp1, wp2+1):
+        for i in xrange(wp1, wp2+1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
@@ -144,8 +144,8 @@ class WaypointUpdater(object):
         """
 
         rospy.logdebug("computing closest_waypoint_index for pos %d, %d",
-                    self.current_pose.position.x,
-                    self.current_pose.position.y)
+                       self.current_pose.position.x,
+                       self.current_pose.position.y)
 
         if self.current_waypoint_ahead is None:
             possible_waypoint_indices = self._get_waypoint_indices(0,
@@ -154,7 +154,7 @@ class WaypointUpdater(object):
         else:
             possible_waypoint_indices = self._get_waypoint_indices(self.current_waypoint_ahead, LOOKAHEAD_WPS)
             closest_distance = dl(self.base_waypoints[self.current_waypoint_ahead].pose.pose.position,
-                                self.current_pose.position)
+                                  self.current_pose.position)
 
         prev_index = possible_waypoint_indices.pop(0)
         closer_point_found = True
@@ -162,7 +162,7 @@ class WaypointUpdater(object):
         while closer_point_found and len(possible_waypoint_indices) > 0:
             index = possible_waypoint_indices.pop(0)
             distance = dl(self.base_waypoints[index].pose.pose.position,
-                         self.current_pose.position)
+                          self.current_pose.position)
 
             if distance > closest_distance:
                 closer_point_found = False
@@ -203,12 +203,12 @@ class WaypointUpdater(object):
             speeds = 10# np.concatenate((speeds, full_speed))
 
         # There is a traffic light in front
-        elif self.closest_obstacle !=  -1:
+        elif self.closest_obstacle != -1:
             remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead)
             distance = self.distance(lane.waypoints, 0, self.closest_obstacle - start_index)
             
             if self.current_velocity > 2:
-                speeds =  min(10, .15*(distance - 5))
+                speeds = min(10, .15*(distance - 5))
             else:
                 speeds = 0
 
@@ -217,9 +217,10 @@ class WaypointUpdater(object):
             full_speed = np.ones(7*LOOKAHEAD_WPS//8) * MAX_SPEED
             speeds = np.concatenate((speeds, full_speed))
 
-        rospy.logwarn("WaypointUpdater-Published speed: {}".format(speeds))
+        rospy.logwarn("wp_updater: published speed: {}".format(speeds))
 
-        for i in range(LOOKAHEAD_WPS):
+        lookahead = LOOKAHEAD_WPS if len(lane.waypoints) > LOOKAHEAD_WPS else len(lane.waypoints)
+        for i in xrange(lookahead):
             self.set_waypoint_velocity(lane.waypoints, i, speeds)
 
         self.final_waypoints_pub.publish(lane)
