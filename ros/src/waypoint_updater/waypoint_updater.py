@@ -109,7 +109,7 @@ class WaypointUpdater(object):
         Calculates the euclidean distance between two waypoints given
         """
         dist = 0
-        for i in range(wp1, wp2+1):
+        for i in xrange(wp1, wp2+1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
@@ -219,7 +219,8 @@ class WaypointUpdater(object):
 
         rospy.logwarn("WaypointUpdater-Published speed: {}".format(speeds))
 
-        for i in range(LOOKAHEAD_WPS):
+        lookahead = LOOKAHEAD_WPS if len(lane.waypoints) > LOOKAHEAD_WPS else len(lane.waypoints)
+        for i in xrange(lookahead):
             self.set_waypoint_velocity(lane.waypoints, i, speeds)
 
         self.final_waypoints_pub.publish(lane)
