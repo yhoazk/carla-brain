@@ -117,8 +117,8 @@ class Visualization(QtWidgets.QWidget):
         self.plot_widget = QtWidgets.QWidget(self)
         mpl_x = 215
         mpl_y = 395
-        mpl_w = 650
-        mpl_h = 380
+        mpl_w = 550
+        mpl_h = 320
         self.plot_widget.setGeometry(mpl_x, mpl_y, mpl_w, mpl_h)
         self.plot_widget.setLayout(layout)
         layout.addWidget(self.canvas)
@@ -266,7 +266,7 @@ class Visualization(QtWidgets.QWidget):
         self.draw_brake_throttle(painter, cx, cy, r, Qt.black)
 
         if self.image:
-            image_x = 290
+            image_x = 300
             image_y = 90
             painter.drawImage(QRectF(image_x, image_y, self.image.size().width(), self.image.size().height()), self.image)
 
