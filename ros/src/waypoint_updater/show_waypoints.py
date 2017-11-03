@@ -129,7 +129,7 @@ class Visualization(QtWidgets.QWidget):
         self.throttle_axes = self.figure.add_subplot(211)
         self.throttle_axes.grid(True)
 
-        self.brake_axes = self.figure.add_subplot(212)
+        self.brake_axes = self.figure.add_subplot(212, sharex=self.throttle_axes)
         self.brake_axes.grid(True)
 
         self.canvas = FigureCanvas(self.figure)
@@ -163,11 +163,15 @@ class Visualization(QtWidgets.QWidget):
         """
         tm = timer()
         self.throttle_axes.clear()
-        self.throttle_axes.plot(self.throttle_cmd_deq_t, self.throttle_cmd_deq, alpha=0.5)
+        self.throttle_axes.plot(self.throttle_cmd_deq_t, self.throttle_cmd_deq, 'r', alpha=1.0)
+        self.throttle_axes.plot(self.throttle_rep_deq_t, self.throttle_rep_deq, 'b', alpha=0.5)
+        self.throttle_axes.grid(True)
         self.throttle_axes.set_ylabel("Throttle", fontsize=8)
         self.throttle_axes.set_xlabel("Time", fontsize=8)
         self.brake_axes.clear()
-        self.brake_axes.plot(self.brake_cmd_deq_t, self.brake_cmd_deq, alpha=0.5)
+        self.brake_axes.plot(self.brake_cmd_deq_t, self.brake_cmd_deq, 'r', alpha=1.0)
+        self.brake_axes.plot(self.brake_rep_deq_t, self.brake_rep_deq, 'b', alpha=0.5)
+        self.brake_axes.grid(True)
         self.brake_axes.set_ylabel("Brake", fontsize=8)
         self.brake_axes.set_xlabel("Time", fontsize=8)
         self.canvas.draw()
