@@ -60,8 +60,8 @@ class Visualization(QtWidgets.QWidget):
         self.steering_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
         rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cmd_cb, queue_size=1)
         self.steering_rep = None
-        self.steering_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
-        self.steering_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.steering_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
+        self.steering_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN*5)
         rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_rep_cb, queue_size=1)
 
         self.throttle_cmd_type = None
@@ -71,8 +71,8 @@ class Visualization(QtWidgets.QWidget):
         self.throttle_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
         rospy.Subscriber('/vehicle/throttle_cmd', ThrottleCmd, self.throttle_cmd_cb, queue_size=1)
         self.throttle_rep = None
-        self.throttle_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
-        self.throttle_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.throttle_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
+        self.throttle_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN*5)
         rospy.Subscriber('/vehicle/throttle_report', Float, self.throttle_rep_cb, queue_size=1)
 
         self.brake_cmd_type = None
@@ -82,8 +82,8 @@ class Visualization(QtWidgets.QWidget):
         self.brake_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
         rospy.Subscriber('/vehicle/brake_cmd', BrakeCmd, self.brake_cmd_cb, queue_size=1)
         self.brake_rep = None
-        self.brake_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
-        self.brake_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.brake_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
+        self.brake_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN*5)
         rospy.Subscriber('/vehicle/brake_report', Float, self.brake_rep_cb, queue_size=1)
 
         self.lights = None
