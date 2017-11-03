@@ -46,6 +46,7 @@ class Visualization(QtWidgets.QWidget):
         rospy.init_node('show_waypoints')
         self.lock = threading.Lock()
         self.bridge = CvBridge()
+        self.start_time = timer()
 
         self.final_waypoints = None
         rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb, queue_size=1)
@@ -114,7 +115,7 @@ class Visualization(QtWidgets.QWidget):
         """
         Initialize the gui
         """
-        self.setGeometry(10, 10, 1000, 1000)
+        self.setGeometry(10, 10, 1100, 1100)
         self.setWindowTitle('Carla Diagnostics')
         self.initMPL()
         self.show()
@@ -134,7 +135,7 @@ class Visualization(QtWidgets.QWidget):
         self.canvas = FigureCanvas(self.figure)
         layout = QtWidgets.QVBoxLayout()
         self.plot_widget = QtWidgets.QWidget(self)
-        mpl_x = 215
+        mpl_x = 315
         mpl_y = 395
         mpl_w = 550
         mpl_h = 320
@@ -162,11 +163,11 @@ class Visualization(QtWidgets.QWidget):
         """
         tm = timer()
         self.throttle_axes.clear()
-        self.throttle_axes.plot([x - tm for x in self.throttle_cmd_deq_t], self.throttle_cmd_deq, alpha=0.5)
+        self.throttle_axes.plot(self.throttle_cmd_deq_t, self.throttle_cmd_deq, alpha=0.5)
         self.throttle_axes.set_ylabel("Throttle", fontsize=8)
         self.throttle_axes.set_xlabel("Time", fontsize=8)
         self.brake_axes.clear()
-        self.brake_axes.plot([x - tm for x in self.brake_cmd_deq_t], self.brake_cmd_deq, alpha=0.5)
+        self.brake_axes.plot(self.brake_cmd_deq_t, self.brake_cmd_deq, alpha=0.5)
         self.brake_axes.set_ylabel("Brake", fontsize=8)
         self.brake_axes.set_xlabel("Time", fontsize=8)
         self.canvas.draw()
@@ -183,8 +184,8 @@ class Visualization(QtWidgets.QWidget):
         mov_y = -1*self.min_y 
         #rospy.logwarn("x and y %r %r   %r %r   %r %r", self.max_x, self.max_y, self.min_x, self.min_y, mov_x, mov_y)
 
-        x = 800 - (orig_x + mov_x) * 800 / (self.max_x - self.min_x) + 150
-        y = (orig_y + mov_y) * 800 / (self.max_y - self.min_y) + 40
+        x = 900 - (orig_x + mov_x) * 900 / (self.max_x - self.min_x) + 150
+        y = (orig_y + mov_y) * 900 / (self.max_y - self.min_y) + 40
         return (x, y)
 
     def draw_traffic_lights(self, painter):
@@ -251,6 +252,7 @@ class Visualization(QtWidgets.QWidget):
         :param painter:
         :return:
         """
+        # draw the whole track (base waypoints)
         pen = QPen()
         pen.setWidth(4)
         pen.setColor(Qt.black)
@@ -261,6 +263,7 @@ class Visualization(QtWidgets.QWidget):
                                                waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
+        # draw final waypoints published (immediately in front, with the required speed)
         pen = QPen()
         pen.setWidth(6)
         pen.setColor(Qt.red)
@@ -271,6 +274,7 @@ class Visualization(QtWidgets.QWidget):
                                                waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
 
+        # draw steering command and report
         cx = 130
         cy = 130
         r = 100.0
@@ -279,20 +283,22 @@ class Visualization(QtWidgets.QWidget):
         pen.setColor(Qt.black)
         painter.setPen(pen)
         painter.drawEllipse(QPointF(cx, cy), r, r)
-
         self.draw_steering(painter, cx, cy, r, 10, self.steering_cmd, Qt.red)
         self.draw_steering_report(painter, cx, cy, r, Qt.blue)
         self.draw_brake_throttle(painter, cx, cy, r, Qt.black)
 
+        # draw debug image with TL regions detected
         if self.image:
-            image_x = 300
+            image_x = 450
             image_y = 90
             painter.drawImage(QRectF(image_x, image_y, self.image.size().width(), self.image.size().height()), self.image)
 
+        # draw remaining stats
         self.draw_next_traffic_light(painter)
         self.draw_dbw_enabled(painter)
         self.draw_current_pose(painter)
         self.draw_traffic_lights(painter)
+
 
     def draw_steering(self, painter, cx, cy, r, width, steering, color):
         """
@@ -370,7 +376,7 @@ class Visualization(QtWidgets.QWidget):
         """
         self.steering_cmd = msg.steering_wheel_angle_cmd
         # add to deque for plotting
-        self.steering_cmd_deq_t.append(timer())
+        self.steering_cmd_deq_t.append(timer()-self.start_time)
         self.steering_cmd_deq.append(self.steering_cmd)
 
     def steering_rep_cb(self, msg):
@@ -381,7 +387,7 @@ class Visualization(QtWidgets.QWidget):
         """
         self.steering_rep = msg
         # add to deque for plotting
-        self.steering_rep_deq_t.append(timer())
+        self.steering_rep_deq_t.append(timer()-self.start_time)
         self.steering_rep_deq.append(self.steering_rep)
 
     def throttle_cmd_cb(self, msg):
@@ -394,7 +400,7 @@ class Visualization(QtWidgets.QWidget):
         self.throttle_cmd_type = msg.pedal_cmd_type
         self.throttle_cmd = msg.pedal_cmd
         # add to deque for plotting
-        self.throttle_cmd_deq_t.append(timer())
+        self.throttle_cmd_deq_t.append(timer()-self.start_time)
         self.throttle_cmd_deq.append(self.throttle_cmd)
 
     def throttle_rep_cb(self, msg):
@@ -405,7 +411,7 @@ class Visualization(QtWidgets.QWidget):
         """
         self.throttle_rep = msg.data
         # add to deque for plotting
-        self.throttle_rep_deq_t.append(timer())
+        self.throttle_rep_deq_t.append(timer()-self.start_time)
         self.throttle_rep_deq.append(self.throttle_rep)
 
     def brake_cmd_cb(self, msg):
@@ -418,7 +424,7 @@ class Visualization(QtWidgets.QWidget):
         self.brake_cmd_type = msg.pedal_cmd_type
         self.brake_cmd = msg.pedal_cmd
         # add to deque for plotting
-        self.brake_cmd_deq_t.append(timer())
+        self.brake_cmd_deq_t.append(timer()-self.start_time)
         self.brake_cmd_deq.append(self.brake_cmd)
 
     def brake_rep_cb(self, msg):
@@ -429,7 +435,7 @@ class Visualization(QtWidgets.QWidget):
         """
         self.brake_rep = msg.data
         # add to deque for plotting
-        self.brake_rep_deq_t.append(timer())
+        self.brake_rep_deq_t.append(timer()-self.start_time)
         self.brake_rep_deq.append(self.brake_rep)
 
     def base_waypoints_cb(self, msg):
