@@ -16,6 +16,7 @@ from PyQt5.QtCore import Qt, QPointF, QRectF, QTimer
 
 import rospy
 from std_msgs.msg import Int32, Bool
+from std_msgs.msg import Float32 as Float
 from geometry_msgs.msg import PoseStamped
 from dbw_mkz_msgs.msg import SteeringCmd, SteeringReport, ThrottleCmd, BrakeCmd
 from styx_msgs.msg import TrafficLightArray, Lane
@@ -30,6 +31,9 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+DEQUEU_MAX_LEN = 50
+
+
 
 class Visualization(QtWidgets.QWidget):
 
@@ -43,45 +47,60 @@ class Visualization(QtWidgets.QWidget):
         self.lock = threading.Lock()
         self.bridge = CvBridge()
 
-        self.waypoints = None
+        self.final_waypoints = None
+        rospy.Subscriber('/final_waypoints', Lane, self.final_waypoints_cb, queue_size=1)
+
         self.base_waypoints = None
-        self.steering = 0
-        self.steering_report = None
-        self.lights = None
-        self.traffic_light = - 1
-        self.current_pose = None
-        self.dbw_enabled = False
         self.max_x, self.max_y, self.min_x, self.min_y = (0.1, 0.1, 0.0, 0.0)
+        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
+
+        self.steering_cmd = 0
+        self.steering_cmd_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.steering_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cmd_cb, queue_size=1)
+        self.steering_rep = None
+        self.steering_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.steering_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_rep_cb, queue_size=1)
 
         self.throttle_cmd_type = None
         self.throttle_enable = None
         self.throttle_cmd = None
-        deque_max_len = 50
-        self.throttle_deq = deque([], maxlen=deque_max_len)
-        self.throttle_t_deq = deque([], maxlen=deque_max_len)
+        self.throttle_cmd_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.throttle_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/throttle_cmd', ThrottleCmd, self.throttle_cmd_cb, queue_size=1)
+        self.throttle_rep = None
+        self.throttle_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.throttle_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/throttle_report', Float, self.throttle_rep_cb, queue_size=1)
 
         self.brake_cmd_type = None
         self.brake_enable = None
         self.brake_cmd = None
-        self.brake_deq = deque([], maxlen=deque_max_len)
-        self.brake_t_deq = deque([], maxlen=deque_max_len)
+        self.brake_cmd_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.brake_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/brake_cmd', BrakeCmd, self.brake_cmd_cb, queue_size=1)
+        self.brake_rep = None
+        self.brake_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN)
+        self.brake_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
+        rospy.Subscriber('/vehicle/brake_report', Float, self.brake_rep_cb, queue_size=1)
 
-        rospy.Subscriber('/final_waypoints', Lane, self.waypoints_cb, queue_size=1)
-        rospy.Subscriber('/base_waypoints', Lane, self.base_waypoints_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_report_cb, queue_size=1)
-        rospy.Subscriber('/image_debug', Image, self.camera_callback, queue_size=1)
+        self.lights = None
         rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb, queue_size=1)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb, queue_size=1)
-        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
 
-        rospy.Subscriber('/vehicle/throttle_cmd', ThrottleCmd, self.throttle_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/brake_cmd', BrakeCmd, self.brake_cb, queue_size=1)
+        self.traffic_light = - 1
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_waypoint_cb, queue_size=1)
+
+        self.current_pose = None
+        rospy.Subscriber('/current_pose', PoseStamped, self.current_pose_cb, queue_size=1)
+
+        self.dbw_enabled = False
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb, queue_size=1)
 
         self.img_format_table = {'rgb8': QtGui.QImage.Format_RGB888, 'mono8': QtGui.QImage.Format_Mono,
                                  'bgr8': QtGui.QImage.Format_RGB888}
         self.image = QtGui.QImage(np.zeros([300,400,3]), 400, 300, self.img_format_table['bgr8'])
+        rospy.Subscriber('/image_debug', Image, self.camera_callback, queue_size=1)
 
         self.initUI()
 
@@ -143,11 +162,11 @@ class Visualization(QtWidgets.QWidget):
         """
         tm = timer()
         self.throttle_axes.clear()
-        self.throttle_axes.plot([x-tm for x in self.throttle_t_deq], self.throttle_deq, alpha=0.5)
+        self.throttle_axes.plot([x - tm for x in self.throttle_cmd_deq_t], self.throttle_cmd_deq, alpha=0.5)
         self.throttle_axes.set_ylabel("Throttle", fontsize=8)
         self.throttle_axes.set_xlabel("Time", fontsize=8)
         self.brake_axes.clear()
-        self.brake_axes.plot([x-tm for x in self.brake_t_deq], self.brake_deq, alpha=0.5)
+        self.brake_axes.plot([x - tm for x in self.brake_cmd_deq_t], self.brake_cmd_deq, alpha=0.5)
         self.brake_axes.set_ylabel("Brake", fontsize=8)
         self.brake_axes.set_xlabel("Time", fontsize=8)
         self.canvas.draw()
@@ -246,8 +265,8 @@ class Visualization(QtWidgets.QWidget):
         pen.setWidth(6)
         pen.setColor(Qt.red)
         painter.setPen(pen)
-        if self.waypoints:
-            for waypoint in self.waypoints:
+        if self.final_waypoints:
+            for waypoint in self.final_waypoints:
                 x, y = self.calculate_position(waypoint.pose.pose.position.x,
                                                waypoint.pose.pose.position.y)
                 painter.drawPoint(x, y)
@@ -261,7 +280,7 @@ class Visualization(QtWidgets.QWidget):
         painter.setPen(pen)
         painter.drawEllipse(QPointF(cx, cy), r, r)
 
-        self.draw_steering(painter, cx, cy, r, 10, self.steering, Qt.red)
+        self.draw_steering(painter, cx, cy, r, 10, self.steering_cmd, Qt.red)
         self.draw_steering_report(painter, cx, cy, r, Qt.blue)
         self.draw_brake_throttle(painter, cx, cy, r, Qt.black)
 
@@ -291,14 +310,14 @@ class Visualization(QtWidgets.QWidget):
         """
         Draw the reported steering angle
         """
-        if self.steering_report:
+        if self.steering_rep:
             pen = QPen()
             pen.setColor(Qt.black)
             painter.setPen(pen)
-            text = "%4d km/h" % (self.steering_report.speed*3.6)
+            text = "%4d km/h" % (self.steering_rep.speed * 3.6)
             painter.drawText(QPointF(cx-20, cy+r+20), text)
 
-            self.draw_steering(painter, cx, cy, r, 5, self.steering_report.steering_wheel_angle, color)
+            self.draw_steering(painter, cx, cy, r, 5, self.steering_rep.steering_wheel_angle, color)
 
     def draw_brake_throttle(self, painter, cx, cy, r, color):
         """
@@ -335,23 +354,37 @@ class Visualization(QtWidgets.QWidget):
             painter.drawText(QPointF(cx-20-30, cy+r+20+40), text)
 
 
-    def waypoints_cb(self, msg):
+    def final_waypoints_cb(self, msg):
         """
         Callback for /final_waypoints
         :param msg:
         :return:
         """
-        self.waypoints = msg.waypoints
+        self.final_waypoints = msg.waypoints
 
-    def steering_cb(self, msg):
+    def steering_cmd_cb(self, msg):
         """
         Callback for /vehicle/steering_cmd
         :param msg:
         :return:
         """
-        self.steering = msg.steering_wheel_angle_cmd
+        self.steering_cmd = msg.steering_wheel_angle_cmd
+        # add to deque for plotting
+        self.steering_cmd_deq_t.append(timer())
+        self.steering_cmd_deq.append(self.steering_cmd)
 
-    def throttle_cb(self, msg):
+    def steering_rep_cb(self, msg):
+        """
+        Callback for /vehicle/steering_cmd
+        :param msg:
+        :return:
+        """
+        self.steering_rep = msg
+        # add to deque for plotting
+        self.steering_rep_deq_t.append(timer())
+        self.steering_rep_deq.append(self.steering_rep)
+
+    def throttle_cmd_cb(self, msg):
         """
         Callback for /vehicle/throttle_cmd
         :param msg:
@@ -361,10 +394,21 @@ class Visualization(QtWidgets.QWidget):
         self.throttle_cmd_type = msg.pedal_cmd_type
         self.throttle_cmd = msg.pedal_cmd
         # add to deque for plotting
-        self.throttle_t_deq.append(timer())
-        self.throttle_deq.append(self.throttle_cmd)
+        self.throttle_cmd_deq_t.append(timer())
+        self.throttle_cmd_deq.append(self.throttle_cmd)
 
-    def brake_cb(self, msg):
+    def throttle_rep_cb(self, msg):
+        """
+        Callback for /vehicle/throttle_cmd
+        :param msg:
+        :return:
+        """
+        self.throttle_rep = msg.data
+        # add to deque for plotting
+        self.throttle_rep_deq_t.append(timer())
+        self.throttle_rep_deq.append(self.throttle_rep)
+
+    def brake_cmd_cb(self, msg):
         """
         Callback for /vehicle/brake_cmd
         :param msg:
@@ -374,16 +418,19 @@ class Visualization(QtWidgets.QWidget):
         self.brake_cmd_type = msg.pedal_cmd_type
         self.brake_cmd = msg.pedal_cmd
         # add to deque for plotting
-        self.brake_t_deq.append(timer())
-        self.brake_deq.append(self.brake_cmd)
+        self.brake_cmd_deq_t.append(timer())
+        self.brake_cmd_deq.append(self.brake_cmd)
 
-    def steering_report_cb(self, msg):
+    def brake_rep_cb(self, msg):
         """
-        Callback for /vehicle/steering_cmd
+        Callback for /vehicle/brake_cmd
         :param msg:
         :return:
         """
-        self.steering_report = msg
+        self.brake_rep = msg.data
+        # add to deque for plotting
+        self.brake_rep_deq_t.append(timer())
+        self.brake_rep_deq.append(self.brake_rep)
 
     def base_waypoints_cb(self, msg):
         """
