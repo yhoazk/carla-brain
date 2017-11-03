@@ -17,7 +17,7 @@ script:
   - docker pull kairosautomotive/carla-brain:latest 
   - docker build . --cache-from kairosautomotive/carla-brain:latest -t capstone
   - docker run -v $PWD:/capstone -v /tmp/log:/root/.ros/ -v /home/travis/.ccache:/root/.ccache/ --rm --workdir /capstone/ros capstone  /opt/ros/kinetic/bin/catkin_make 
-  - docker run -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it --workdir /capstone/ros kairosautomotive/carla-brain /bin/bash -c "source devel/setup.bash && /opt/ros/kinetic/bin/catkin_make run_tests; exit $?" 
+  - docker run -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it --workdir /capstone/ros kairosautomotive/carla-brain /bin/bash -c "source devel/setup.bash && /opt/ros/kinetic/bin/catkin_make run_tests; if test \$(grep -r \"errors=\\\"0\\\" failures=\\\"0\\\"\"  build/test_results/ | wc -l) -eq \$(find build/test_results/ -type f | wc -l); then exit 0; else exit 1; fi;"
 notifications:
   email:
       on_success: change
