@@ -60,7 +60,8 @@ class Visualization(QtWidgets.QWidget):
         self.steering_cmd_deq_t = deque([], maxlen=DEQUEU_MAX_LEN)
         rospy.Subscriber('/vehicle/steering_cmd', SteeringCmd, self.steering_cmd_cb, queue_size=1)
         self.steering_rep = None
-        self.steering_rep_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
+        self.steering_rep_speed_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
+        self.steering_rep_angle_deq = deque([], maxlen=DEQUEU_MAX_LEN*5)
         self.steering_rep_deq_t = deque([], maxlen=DEQUEU_MAX_LEN*5)
         rospy.Subscriber('/vehicle/steering_report', SteeringReport, self.steering_rep_cb, queue_size=1)
 
@@ -126,11 +127,17 @@ class Visualization(QtWidgets.QWidget):
         """
         self.figure = Figure()
 
-        self.throttle_axes = self.figure.add_subplot(211)
+        self.throttle_axes = self.figure.add_subplot(411)
         self.throttle_axes.grid(True)
 
-        self.brake_axes = self.figure.add_subplot(212, sharex=self.throttle_axes)
+        self.brake_axes = self.figure.add_subplot(412, sharex=self.throttle_axes)
         self.brake_axes.grid(True)
+
+        self.steer_axes = self.figure.add_subplot(413, sharex=self.throttle_axes)
+        self.steer_axes.grid(True)
+
+        self.speed_axes = self.figure.add_subplot(414, sharex=self.throttle_axes)
+        self.speed_axes.grid(True)
 
         self.canvas = FigureCanvas(self.figure)
         layout = QtWidgets.QVBoxLayout()
@@ -153,8 +160,8 @@ class Visualization(QtWidgets.QWidget):
         painter = QtGui.QPainter()
         painter.begin(self)
         self.drawPoints(painter)
-        painter.end()
         self.draw_plots()
+        painter.end()
 
 
     def draw_plots(self):
@@ -162,18 +169,39 @@ class Visualization(QtWidgets.QWidget):
         re-draw matplotlib plots with fresh data
         """
         tm = timer()
+
         self.throttle_axes.clear()
+        self.throttle_axes.set_ylim(0., 1.)
+        self.throttle_axes.grid(True)
         self.throttle_axes.plot(self.throttle_cmd_deq_t, self.throttle_cmd_deq, 'r', alpha=1.0)
         self.throttle_axes.plot(self.throttle_rep_deq_t, self.throttle_rep_deq, 'b', alpha=0.5)
-        self.throttle_axes.grid(True)
         self.throttle_axes.set_ylabel("Throttle", fontsize=8)
         self.throttle_axes.set_xlabel("Time", fontsize=8)
+
         self.brake_axes.clear()
+        self.brake_axes.set_ylim(0., 4000.)
+        self.brake_axes.grid(True)
         self.brake_axes.plot(self.brake_cmd_deq_t, self.brake_cmd_deq, 'r', alpha=1.0)
         self.brake_axes.plot(self.brake_rep_deq_t, self.brake_rep_deq, 'b', alpha=0.5)
-        self.brake_axes.grid(True)
         self.brake_axes.set_ylabel("Brake", fontsize=8)
         self.brake_axes.set_xlabel("Time", fontsize=8)
+
+        self.steer_axes.clear()
+        self.steer_axes.set_ylim(-.1, .1)
+        self.steer_axes.grid(True)
+        self.steer_axes.plot(self.steering_cmd_deq_t, self.steering_cmd_deq, 'r', alpha=1.0)
+        self.steer_axes.plot(self.steering_rep_deq_t, self.steering_rep_angle_deq, 'b', alpha=0.5)
+        self.steer_axes.set_ylabel("Steer Angle", fontsize=8)
+        self.steer_axes.set_xlabel("Time", fontsize=8)
+
+        self.speed_axes.clear()
+        self.speed_axes.set_ylim(0, 15.)
+        self.speed_axes.grid(True)
+        #self.speed_axes.plot(self.steering_cmd_deq_t, self.steering_cmd_deq, 'r', alpha=1.0)
+        self.speed_axes.plot(self.steering_rep_deq_t, self.steering_rep_speed_deq, 'b', alpha=0.5)
+        self.speed_axes.set_ylabel("Speed", fontsize=8)
+        self.speed_axes.set_xlabel("Time", fontsize=8)
+
         self.canvas.draw()
 
 
@@ -392,7 +420,8 @@ class Visualization(QtWidgets.QWidget):
         self.steering_rep = msg
         # add to deque for plotting
         self.steering_rep_deq_t.append(timer()-self.start_time)
-        self.steering_rep_deq.append(self.steering_rep)
+        self.steering_rep_speed_deq.append(self.steering_rep.speed)
+        self.steering_rep_angle_deq.append(self.steering_rep.steering_wheel_angle)
 
     def throttle_cmd_cb(self, msg):
         """
