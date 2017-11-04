@@ -168,8 +168,6 @@ class Visualization(QtWidgets.QWidget):
         """
         re-draw matplotlib plots with fresh data
         """
-        tm = timer()
-
         self.throttle_axes.clear()
         self.throttle_axes.set_ylim(0., 1.)
         self.throttle_axes.grid(True)
@@ -187,7 +185,6 @@ class Visualization(QtWidgets.QWidget):
         self.brake_axes.set_xlabel("Time", fontsize=8)
 
         self.steer_axes.clear()
-        #self.steer_axes.set_ylim(-.1, .1)
         self.steer_axes.grid(True)
         self.steer_axes.plot(self.steering_cmd_deq_t, self.steering_cmd_deq, 'r', alpha=1.0)
         self.steer_axes.plot(self.steering_rep_deq_t, self.steering_rep_angle_deq, 'b', alpha=0.5)
@@ -197,7 +194,6 @@ class Visualization(QtWidgets.QWidget):
         self.speed_axes.clear()
         self.speed_axes.set_ylim(0, 15.)
         self.speed_axes.grid(True)
-        #self.speed_axes.plot(self.steering_cmd_deq_t, self.steering_cmd_deq, 'r', alpha=1.0)
         self.speed_axes.plot(self.steering_rep_deq_t, self.steering_rep_speed_deq, 'b', alpha=0.5)
         self.speed_axes.set_ylabel("Speed", fontsize=8)
         self.speed_axes.set_xlabel("Time", fontsize=8)
