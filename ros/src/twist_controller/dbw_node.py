@@ -121,7 +121,7 @@ class DBWNode(object):
 
     def loop(self):
         """Loop that computes throttle, brake and steer to publish."""
-        rate = rospy.Rate(10)  # originally 50Hz
+        rate = rospy.Rate(50)
         while not rospy.is_shutdown():
 
             if self._valid_state():
