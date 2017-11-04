@@ -187,7 +187,7 @@ class Visualization(QtWidgets.QWidget):
         self.brake_axes.set_xlabel("Time", fontsize=8)
 
         self.steer_axes.clear()
-        self.steer_axes.set_ylim(-.1, .1)
+        #self.steer_axes.set_ylim(-.1, .1)
         self.steer_axes.grid(True)
         self.steer_axes.plot(self.steering_cmd_deq_t, self.steering_cmd_deq, 'r', alpha=1.0)
         self.steer_axes.plot(self.steering_rep_deq_t, self.steering_rep_angle_deq, 'b', alpha=0.5)
