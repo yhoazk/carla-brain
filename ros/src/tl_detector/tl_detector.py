@@ -18,7 +18,7 @@ import yaml
 import rospy
 from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped
-from styx_msgs.msg import Lane, TrafficLight
+from styx_msgs.msg import Lane, TrafficLight, TrafficLightArray
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
