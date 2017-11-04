@@ -1,10 +1,10 @@
+"""
+Definition of all classes used to compute values issued to control vehicle.
+"""
 
-import numpy as np
 import rospy
 
-from lowpass import LowPassFilter
 from yaw_controller import YawController
-from math import fabs
 from twiddle import PIDWithTwiddle
 from dbw_mkz_msgs.msg import BrakeCmd
 from lpf_2stages import quick_lpf as lpf
@@ -17,6 +17,11 @@ CORR_STEERING_FACTOR = 0.3
 
 
 class Controller(object):
+    """
+    Controller encapsulates all logic to compute
+    throttle, brake and steer commands.
+    """
+
     def __init__(self,
                  vehicle_mass,
                  fuel_capacity,
@@ -35,15 +40,18 @@ class Controller(object):
         self.decel_limit = decel_limit
 
         self.prev_time = rospy.get_time()
-        self.avg_filter = lpf(nT1 = 2, nT2=15)
-        self.avg_filter_brake = lpf(nT1 = 7, nT2=15)
+        self.avg_filter = lpf(nT1=2, nT2=15)
+        self.avg_filter_brake = lpf(nT1=7, nT2=15)
 
         # twiddle algorithm is disabled so iterations and tolerance are here to show
         # what values to use when you want to activate twiddle.
-        # kp, ki and kd are values found from previous twiddle runs.
+        # current kp, ki and kd are values found from previous twiddle runs.
         self.steer_pid = PIDWithTwiddle("steering PID", kp=0.607900, ki=0.000172, kd=1.640951,
-                             mn=-max_steer_angle, mx=max_steer_angle,
-                             optimize_params=False, iterations=10, tolerance=0.05)
+                                        mn=-max_steer_angle, mx=max_steer_angle,
+                                        optimize_params=False, iterations=10, tolerance=0.05)
+        self.accel_pid = PIDWithTwiddle("t/b PID", kp=1.806471, ki=0.00635, kd=0.715603,
+                                        mn=decel_limit, mx=accel_limit,
+                                        optimize_params=False, iterations=10, tolerance=0.05)
 
         self.max_steer_angle = max_steer_angle
         self.yaw_controller = YawController(wheel_base=wheel_base,
@@ -52,18 +60,18 @@ class Controller(object):
                                             max_lat_accel=max_lat_accel,
                                             max_steer_angle=max_steer_angle)
 
-        self.accel_pid = PIDWithTwiddle("t/b PID", kp=1.806471, ki=0.00635, kd=0.715603,
-                                        mn=decel_limit, mx=accel_limit,
-                                        optimize_params=False, iterations=10, tolerance=0.05)
-
-
-
     def control(self,
                 dbw_enabled,
                 cte,
                 linear_velocity,
                 angular_velocity,
                 current_velocity):
+        """
+
+        Returns the values for throttle, brake and steer
+        given current state of the car : ( CTE, current linear and angular velocity)
+        and the desired linear velocity
+        """
 
         throttle = 0.0
         brake = 0.0
@@ -78,30 +86,30 @@ class Controller(object):
                                                                 angular_velocity=angular_velocity,
                                                                 current_velocity=current_velocity)
 
-            corrective_steer = self.steer_pid.step(error=cte, sample_time=sample_time)
+            corrective_steer = self.steer_pid.step(
+                error=cte, sample_time=sample_time)
 
             steer = CORR_STEERING_FACTOR * corrective_steer + PRED_STEERING_FACTOR * predictive_steer
 
             rospy.logdebug('steer = %f, cte = %f, corrective_steer = %f, predictive_steer = %f',
-                          steer, cte, corrective_steer, predictive_steer)
+                           steer, cte, corrective_steer, predictive_steer)
 
             vel_delta = linear_velocity - current_velocity
-            res_accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
-            
-            ###### Filter start
-            res_accel = self.avg_filter.filter(res_accel)
-            ###### Filter End
+            res_accel = self.accel_pid.step(
+                error=vel_delta, sample_time=sample_time)
 
+            res_accel = self.avg_filter.filter(res_accel)
 
             rospy.logdebug('desired vel = %f, current vel = %f, accel = %f',
-                          linear_velocity, current_velocity, res_accel)
+                           linear_velocity, current_velocity, res_accel)
 
             if res_accel < 0.0 or linear_velocity < current_velocity:
                 self.avg_filter.clear()
                 if -res_accel < self.brake_deadband:
                     res_accel = 0.0
-                
-                throttle, brake = 0, self.avg_filter_brake.filter(BrakeCmd.TORQUE_MAX) # (-res_accel * self.brake_car_factor) * 150.0
+
+                throttle, brake = 0, self.avg_filter_brake.filter(
+                    BrakeCmd.TORQUE_MAX)
             else:
                 throttle, brake = res_accel, 0
 

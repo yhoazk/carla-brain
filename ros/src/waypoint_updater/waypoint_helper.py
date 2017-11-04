@@ -1,10 +1,12 @@
+"""
+Helper functions for the waypoint updater.
+"""
+
 import math
 import tf
 
 def is_waypoint_behind_pose(pose, waypoint):
-    """ Checks that waypoint is ahead of given pose w.r.t. to
-    pose direction.
-    """
+    """Check that waypoint is ahead of given pose w.r.t. to pose direction."""
     _, _, yaw = tf.transformations.euler_from_quaternion([pose.orientation.x,
                                                           pose.orientation.y,
                                                           pose.orientation.z,

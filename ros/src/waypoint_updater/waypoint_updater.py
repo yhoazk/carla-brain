@@ -1,15 +1,6 @@
 #!/usr/bin/env python
-import math
-import numpy as np
-import rospy
-from std_msgs.msg import Int32
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import TwistStamped
-from styx_msgs.msg import Lane, Waypoint
-from styx_msgs.msg import TrafficLightArray, TrafficLight
-from waypoint_helper import is_waypoint_behind_pose
 
-'''
+"""
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
 As mentioned in the doc, you should ideally first implement a version which does not care
@@ -22,7 +13,16 @@ current status in `/vehicle/traffic_lights` message. You can use this message to
 as well as to verify your TL classifier.
 
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
-'''
+"""
+
+import math
+import numpy as np
+import rospy
+from std_msgs.msg import Int32
+from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped
+from styx_msgs.msg import Lane
+from waypoint_helper import is_waypoint_behind_pose
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number via parameter
 PUBLISHER_RATE = 1  # Publishin rate on channel /final_waypoints
@@ -31,6 +31,8 @@ MAX_SPEED = 10 # replace with the configurable one
 dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
 class WaypointUpdater(object):
+    """WaypointUpdater computes the Lane the car should follow."""
+
     def __init__(self):
         global LOOKAHEAD_WPS
         rospy.init_node('waypoint_updater')
@@ -60,9 +62,7 @@ class WaypointUpdater(object):
             rate.sleep()
 
     def pose_cb(self, msg):
-        """
-        Updates the state of the vehicle and which frame is the current one.
-        """
+        """Update the state of the vehicle and which frame is the current one."""
         self.current_pose = msg.pose
         self.current_frame_id = msg.header.frame_id
 
@@ -70,22 +70,16 @@ class WaypointUpdater(object):
             return
 
     def waypoints_cb(self, waypoints):
-        """
-        Sets the callbacks in this object
-        """
+        """Sets the callbacks in this object."""
         self.base_waypoints = waypoints.waypoints
         self.len_base_waypoints = len(self.base_waypoints)
 
     def traffic_cb(self, msg):
-        """
-        Callback to get the position of the next traffic light
-        """
+        """Callback to get the position of the next traffic light."""
         self.closest_obstacle = msg.data
 
     def velocity_cb(self, msg):
-        """
-        Callback to get the current speed of the vehicle
-        """
+        """Callback to get the current speed of the vehicle."""
         self.current_velocity = msg.twist.linear.x
 
     def obstacle_cb(self, msg):
@@ -93,29 +87,23 @@ class WaypointUpdater(object):
         pass
 
     def get_waypoint_velocity(self, waypoint):
-        """
-        Unwraps the waypoint to return the value of the linear speed
-        """
+        """Unwrap the waypoint to return the value of the linear speed."""
         return waypoint.twist.twist.linear.x
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
-        """
-        Unwraps the waypoint object to set the value for the linear speed
-        """
+        """Unwraps the waypoint object to set the value for the linear speed."""
         waypoints[waypoint].twist.twist.linear.x = velocity
 
     def distance(self, waypoints, wp1, wp2):
-        """
-        Calculates the euclidean distance between two waypoints given
-        """
+        """Calculates the euclidean distance between two waypoints given."""
         dist = 0
         for i in xrange(wp1, wp2+1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
 
-    def _get_waypoint_indices(self, start_index, length=None):
-        """Computes a cyclic list of waypoint indices
+    def _get_waypoint_indices(self, start_index, length):
+        """Computes a cyclic list of waypoint indices.
 
         Args:
         start_index (int): Initial index of the list
@@ -124,8 +112,6 @@ class WaypointUpdater(object):
         Returns:
         cyclic list of waypoint indices
         """
-        if length is None:
-            lenght = self.len_base_waypoints
 
         # making sure that length does not overpass base waypoints length
         length = min(self.len_base_waypoints, length)
@@ -136,12 +122,11 @@ class WaypointUpdater(object):
         # q can either be 0 or 1
         if q == 0:
             return range(start_index, r)
-        else:
-            return range(start_index, self.len_base_waypoints) + range(0, r)
+
+        return range(start_index, self.len_base_waypoints) + range(0, r)
 
     def _closest_waypoint_index(self):
-        """ Computes the index of closest waypoint w.r.t current position
-        """
+        """ Computes the index of closest waypoint w.r.t current position."""
 
         rospy.logdebug("computing closest_waypoint_index for pos %d, %d",
                        self.current_pose.position.x,
@@ -180,8 +165,7 @@ class WaypointUpdater(object):
 
 
     def publish_waypoints_ahead(self):
-        """ Publishes a Lane of LOOKAHEAD_WPS waypoints /final_waypoint topic
-        """
+        """ Publishes a Lane of LOOKAHEAD_WPS waypoints /final_waypoint topic."""
         if self.base_waypoints is None or self.current_pose is None:
             return
 
@@ -204,9 +188,8 @@ class WaypointUpdater(object):
 
         # There is a traffic light in front
         elif self.closest_obstacle != -1:
-            remaining_wp = abs(self.closest_obstacle - self.current_waypoint_ahead)
             distance = self.distance(lane.waypoints, 0, self.closest_obstacle - start_index)
-            
+
             if self.current_velocity > 2:
                 speeds = min(10, .15*(distance - 5))
             else:

@@ -1,16 +1,6 @@
 #!/usr/bin/env python
-import math
-import rospy
-import threading
-from std_msgs.msg import Bool
-from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
-from geometry_msgs.msg import TwistStamped, PoseStamped
-from styx_msgs.msg import Lane
 
-from twist_controller import Controller
-from dbw_cte import compute_cte
-
-'''
+"""
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
 
 You will subscribe to `/twist_cmd` message which provides the proposed linear and angular velocities.
@@ -31,7 +21,18 @@ You are free to use them or build your own.
 Once you have the proposed throttle, brake, and steer values, publish it on the various publishers
 that we have created in the `__init__` function.
 
-'''
+"""
+
+import math
+import rospy
+import threading
+from std_msgs.msg import Bool
+from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
+from geometry_msgs.msg import TwistStamped, PoseStamped
+from styx_msgs.msg import Lane
+
+from twist_controller import Controller
+from dbw_cte import compute_cte
 
 # Dont publish if last published values don't differ above corresponding EPSILON
 STEERING_EPSILON = 0.1
@@ -41,7 +42,13 @@ BRAKE_EPSILON = 0.05
 SUBSCRIBER_QUEUE_SIZE = 1
 
 class DBWNode(object):
+    """
+    DBWNode is in charge of publishing all control values for the car.
 
+    Using information about current state of the car ( velocity and position )
+    plus the desired trajectory ( velocity and path to follow ) it publishes
+    the control values for the car: throttle, brake, steer.
+    """
     def __init__(self):
         rospy.init_node('dbw_node')
 
@@ -113,7 +120,8 @@ class DBWNode(object):
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(10)  # originally 50Hz
+        """Loop that computes throttle, brake and steer to publish."""
+        rate = rospy.Rate(50)
         while not rospy.is_shutdown():
 
             if self._valid_state():
@@ -133,6 +141,7 @@ class DBWNode(object):
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
+        """Publish throttle, brake and steer."""
         if abs(throttle - self.last_throttle) < THROTTLE_EPSILON:
             tcmd = ThrottleCmd()
             tcmd.enable = True
@@ -186,7 +195,8 @@ class DBWNode(object):
             self.waypoints = msg.waypoints
 
     def _valid_state(self):
-        """ Checks whethear node has all information needed to operate correctly
+        """ Checks whether node has all information needed to operate correctly.
+        This node needs: Proposed and current velocity, current position and waypoints to follow.
         """
         return self.proposed_velocities is not None and self.current_velocity is not None and \
             self.current_pose is not None and self.waypoints is not None
