@@ -13,7 +13,6 @@ RUN rosdep update && \
                                                "ros-$ROS_DISTRO-cv-bridge=1.12.4-0xenial-20170613-183021-0800" \
                                                "ros-$ROS_DISTRO-pcl-ros=1.4.1-0xenial-20170727-185800-0800" \
                                                "ros-$ROS_DISTRO-image-proc=1.12.20-0xenial-20170613-192315-0800" \
-                                               "ros-$ROS_DISTRO-rviz=1.12.13-0xenial-20171025-135907-0800" \
                                                netbase \
                                                python-pip \
                                                ccache && \
