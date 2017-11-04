@@ -17,8 +17,9 @@ class TLClassifier(object):
         Using the LUV color space makes the classifier work reliably in various setups and light conditions, in both simulated and real-world environment. 
         For example, this classifier works reliably in light conditions that visually make the top light appear yellow/orange, where hue based classifiers are likely to fail.
 
-        Note: The classifier assumes the traffic light consists of 3 light bulbs, with RED being at the top, YELLOW in the middle, and GREEN at the botom.
-        It requires adjustment to work in cases where the traffic light has different number of colors, or their arrangement is different (e.g., horizontal)
+        Note: 
+            The classifier assumes the traffic light consists of 3 light bulbs, with RED being at the top, YELLOW in the middle, and GREEN at the botom.
+            It requires adjustment to work in cases where the traffic light has different number of colors, or their arrangement is different (e.g., horizontal)
 
         Args:
             image (cv::Mat): image containing the traffic light, with just the 3 lights/bulbs, and cropped to include minimum background. 
@@ -29,20 +30,16 @@ class TLClassifier(object):
 
         """
   
-
         rospy.logdebug("tl_classifier: Classification requested")
 
         # An initial cropping can be applied to the image, to minimize the amount of background area outside of the traffic light. Tweak depending on the image source used.
-
         self.img_h, self.img_w, self.img_d = image.shape
 
         height_trim = 0.1
         width_trim = 0.1
 
         # Image is trimmed, converted to CIELUV and L channel is extracted
-
         self.l_channel = cv2.cvtColor(image, cv2.COLOR_RGB2LUV)[int(height_trim*self.img_h):int((1.0 - height_trim)*self.img_h),int(width_trim*self.img_w):int((1.0-width_trim)*self.img_w),0]
-
 
         # Markers are established to enable splitting the image into top, mid, and bottom thirds
         self.img_h, self.img_w = self.l_channel.shape
@@ -50,9 +47,7 @@ class TLClassifier(object):
         self.top_third_marker = int(self.img_h / 3)
         self.bottom_third_marker = self.img_h - self.top_third_marker
 
-
-        # Magnitude of L is established for each sedtion of the image
-
+        # Magnitude of L is established for each section of the image
         top = 0
         mid = 0
         bottom = 0
@@ -63,22 +58,18 @@ class TLClassifier(object):
             for j in range(self.img_w):
                 top += self.l_channel[i][j]
         count_result['RED'] = top
-        
 
         for i in range(self.top_third_marker, self.bottom_third_marker):
             for j in range(self.img_w):
                 mid += self.l_channel[i][j]
         count_result['YELLOW'] = mid
 
-
         for i in range(self.bottom_third_marker, self.img_h):
             for j in range(self.img_w):
                 bottom += self.l_channel[i][j]
         count_result['GREEN'] = bottom
 
-
         #The result is classified into one of the 3 colors and returned
-
         max_count = max(count_result, key=count_result.get)
 
         if max_count == 'RED':
