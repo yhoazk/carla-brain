@@ -62,6 +62,12 @@ class DBWNode(object):
         steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+
+        max_throttle_pct = rospy.get_param('~max_throttle_percentage', 1.)
+        rospy.logwarn("dbw_node: max throttle pct: %f", max_throttle_pct)
+        max_braking_pct = rospy.get_param('~max_braking_percentage', -1.)
+        rospy.logwarn("dbw_node: max braking pct: %f", max_braking_pct)
+
         self.lock = threading.Lock()
 
         self.dbw_enabled = False
@@ -90,7 +96,9 @@ class DBWNode(object):
                                      wheel_base,
                                      steer_ratio,
                                      max_lat_accel,
-                                     max_steer_angle)
+                                     max_steer_angle,
+                                     max_throttle_pct,
+                                     max_braking_pct)
 
         rospy.Subscriber('/current_velocity',
                          TwistStamped,
