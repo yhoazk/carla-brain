@@ -90,6 +90,9 @@ roslaunch launch/styx.launch monkey_patch:=true
 ```
 4. Run the simulator
 
+[![Video result on simulator run](imgs/youtube_sim.png)](https://youtu.be/956Q7wU0-lE)
+
+
 ## Visualize the drive
 ### Mac with X11 and docker
 #### Setup
@@ -171,5 +174,7 @@ cd carla-brain/ros
 roslaunch launch/site.launch
 ```
 
-5. Confirm that traffic light detection works on real life images
+5. Confirm that traffic light detection works on real life images.
+
+[![Video result on Udacity ROS bag](imgs/youtube_ros.png)](https://youtu.be/08Td9rkB7o8)
 
