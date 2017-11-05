@@ -32,12 +32,16 @@ class Controller(object):
                  wheel_base,
                  steer_ratio,
                  max_lat_accel,
-                 max_steer_angle):
+                 max_steer_angle,
+                 max_throttle_pct=1.0,
+                 max_braking_pct=-1.0):
 
         self.brake_deadband = brake_deadband
         total_car_mass = vehicle_mass + fuel_capacity * GAS_DENSITY
         self.brake_car_factor = total_car_mass * wheel_radius
         self.decel_limit = decel_limit
+        self.max_throttle_pct = max_throttle_pct
+        self.max_braking_pct = max_braking_pct
 
         self.prev_time = rospy.get_time()
         self.avg_filter = lpf(nT1=2, nT2=15)
@@ -95,8 +99,7 @@ class Controller(object):
                            steer, cte, corrective_steer, predictive_steer)
 
             vel_delta = linear_velocity - current_velocity
-            res_accel = self.accel_pid.step(
-                error=vel_delta, sample_time=sample_time)
+            res_accel = self.accel_pid.step(error=vel_delta, sample_time=sample_time)
 
             res_accel = self.avg_filter.filter(res_accel)
 
@@ -108,9 +111,10 @@ class Controller(object):
                 if -res_accel < self.brake_deadband:
                     res_accel = 0.0
 
-                throttle, brake = 0, self.avg_filter_brake.filter(
-                    BrakeCmd.TORQUE_MAX)
+                throttle, brake = 0, self.avg_filter_brake.filter(BrakeCmd.TORQUE_MAX)*abs(self.max_braking_pct)
             else:
+                if (res_accel > self.max_throttle_pct):
+                    res_accel = self.max_throttle_pct
                 throttle, brake = res_accel, 0
 
         else:
